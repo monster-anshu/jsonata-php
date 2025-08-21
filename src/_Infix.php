@@ -8,7 +8,7 @@ class _Infix extends Symbol
 
     public function __construct(Parser $outerInstance, ?string $id, int $bp = 0)
     {
-        $lbp = $bp !== 0 ? $bp : (isset(Tokenizer::operators[$id]) ? Tokenizer::operators[$id] : 0);
+        $lbp = $bp !== 0 ? $bp : (Tokenizer::operators[$id] ?? 0);
         parent::__construct($outerInstance, $id, $lbp);
     }
 

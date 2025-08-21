@@ -13,6 +13,6 @@ class JException extends \Exception {
         $this->code = $code;
         $this->position = $position;
         $this->value = $value;
-        parent::__construct("Error $code at position $position: " . ($value ? $value : ""));
+        parent::__construct("Error $code at position $position: " . ($value ?: ""));
     }
 }

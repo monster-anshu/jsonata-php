@@ -136,7 +136,7 @@ class Signature
                 case '(':
                     $end = $this->findClosingBracket($signature, $position, '(', ')');
                     $choice = substr($signature, $position + 1, $end - $position - 1);
-                    if (strpos($choice, "<") === false) {
+                    if (!str_contains($choice, "<")) {
                         $this->param->regex = "[" . $choice . "m]";
                     } else {
                         throw new \RuntimeException("Choice groups with parameterized types not supported");
@@ -186,7 +186,7 @@ class Signature
     {
         $res = 0;
         foreach ($this->params as $p) {
-            if (strpos($p->regex, "?") === false) {
+            if (!str_contains($p->regex, "?")) {
                 $res++;
             }
         }
