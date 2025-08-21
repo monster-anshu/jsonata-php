@@ -1,0 +1,29 @@
+<?php
+
+declare(strict_types=1);
+namespace Monster\JsonataPhp;
+
+class InfixCoalesce extends Infix
+{
+    public function __construct(Parser $outerInstance, int $bp)
+    {
+        parent::__construct($outerInstance, "??", $bp);
+    }
+
+    public function led(Symbol $left): Symbol
+    {
+        $this->type = "condition";
+        $cond = new Symbol($this->outerInstance);
+        $cond->type = "function";
+        $cond->value = "(";
+        $proc = new Symbol($this->outerInstance);
+        $proc->type = "variable";
+        $proc->value = "exists";
+        $cond->procedure = $proc;
+        $cond->arguments = [$left];
+        $this->condition = $cond;
+        $this->then = $left;
+        $this->else = $this->outerInstance->expression(0);
+        return $this;
+    }
+}

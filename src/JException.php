@@ -1,8 +1,9 @@
 <?php
 
 declare(strict_types=1);
+namespace Monster\JsonataPhp;
 
-class JException extends Exception {
+class JException extends \Exception {
     public $code;
     public $position;
     public $value;

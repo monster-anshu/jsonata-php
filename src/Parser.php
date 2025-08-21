@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+namespace Monster\JsonataPhp;
 
 class Parser
 {
@@ -198,7 +199,7 @@ class Parser
     {
         $remaining = [];
         if ($this->node->id !== '(end)') {
-            $t = new JSONATA_TOKEN(
+            $t = new JsonataToken(
                 $this->node->type,
                 $this->node->value,
                 $this->node->position

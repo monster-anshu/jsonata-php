@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+namespace Monster\JsonataPhp;
 
 class Tokenizer
 {
@@ -66,14 +67,14 @@ class Tokenizer
         $this->length = strlen($path);
     }
 
-    private function create(string $type, mixed $value): JSONATA_TOKEN
+    private function create(string $type, mixed $value): JsonataToken
     {
         // return [
         //     "type" => $type,
         //     "value" => $value,
         //     "position" => $this->position
         // ];
-        return new JSONATA_TOKEN($type, $value, $this->position);
+        return new JsonataToken($type, $value, $this->position);
     }
 
     private function skipWhitespace(): void
@@ -83,7 +84,7 @@ class Tokenizer
         }
     }
 
-    private function scanRegex(): JSONATA_TOKEN
+    private function scanRegex(): JsonataToken
     {
         $start = $this->position;
         $pattern = "";
@@ -110,10 +111,10 @@ class Tokenizer
             }
             $this->position++;
         }
-        throw new Exception("Unterminated regex at pos {$this->position}");
+        throw new \Exception("Unterminated regex at pos {$this->position}");
     }
 
-    private function readString(string $quoteType): JSONATA_TOKEN
+    private function readString(string $quoteType): JsonataToken
     {
         $this->position++;
         $qstr = "";
@@ -122,7 +123,7 @@ class Tokenizer
             if ($ch === "\\") {
                 $this->position++;
                 if ($this->position >= $this->length) {
-                    throw new Exception("Unterminated escape sequence");
+                    throw new \Exception("Unterminated escape sequence");
                 }
                 $esc = $this->path[$this->position];
                 if (isset(self::$escapes[$esc])) {
@@ -133,10 +134,10 @@ class Tokenizer
                         $qstr .= mb_convert_encoding(pack("H*", $octets), "UTF-8", "UTF-16BE");
                         $this->position += 4;
                     } else {
-                        throw new Exception("Invalid unicode escape");
+                        throw new \Exception("Invalid unicode escape");
                     }
                 } else {
-                    throw new Exception("Illegal escape sequence: \\$esc");
+                    throw new \Exception("Illegal escape sequence: \\$esc");
                 }
             } elseif ($ch === $quoteType) {
                 $this->position++;
@@ -146,10 +147,10 @@ class Tokenizer
             }
             $this->position++;
         }
-        throw new Exception("Unterminated string");
+        throw new \Exception("Unterminated string");
     }
 
-    public function next(bool $prefix = true): ?JSONATA_TOKEN
+    public function next(bool $prefix = true): ?JsonataToken
     {
         if ($this->position >= $this->length)
             return null;
@@ -170,7 +171,7 @@ class Tokenizer
                 }
                 $this->position++;
             }
-            throw new Exception("Unterminated comment");
+            throw new \Exception("Unterminated comment");
         }
 
         // regex
@@ -213,7 +214,7 @@ class Tokenizer
                 $this->position = $end + 1;
                 return $this->create("name", $name);
             }
-            throw new Exception("Unterminated backtick name");
+            throw new \Exception("Unterminated backtick name");
         }
 
         // names and variables

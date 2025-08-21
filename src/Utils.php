@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+namespace Monster\JsonataPhp;
 
 class JFunctionCallable
 {
@@ -292,7 +293,7 @@ class RangeList extends JList
         throw new \OutOfBoundsException("Index out of bounds: " . $index);
     }
 
-    public function getIterator(): Iterator
+    public function getIterator(): \Iterator
     {
         return new \ArrayIterator(range($this->a, $this->b));
     }

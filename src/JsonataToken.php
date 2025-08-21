@@ -1,8 +1,9 @@
 <?php
 
 declare(strict_types=1);
+namespace Monster\JsonataPhp;
 
-class JSONATA_TOKEN
+class JsonataToken
 {
     public string $type;
     public string $value;

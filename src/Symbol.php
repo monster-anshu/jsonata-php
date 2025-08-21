@@ -1,8 +1,9 @@
 <?php
 
 declare(strict_types=1);
+namespace Monster\JsonataPhp;
 
-class Symbol implements JsonSerializable
+class Symbol implements \JsonSerializable
 {
     // In PHP, class properties are declared with a visibility modifier.
     // We use public for simplicity, but you can change this to public
