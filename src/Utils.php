@@ -268,14 +268,10 @@ class JList extends \ArrayObject
 
 class RangeList extends JList
 {
-    private $a;
-    private $b;
     private $size;
 
-    public function __construct($left, $right)
+    public function __construct(private $a, private $b)
     {
-        $this->a = $left;
-        $this->b = $right;
         $this->size = $this->b - $this->a + 1;
         parent::__construct();
     }

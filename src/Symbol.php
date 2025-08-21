@@ -3,25 +3,20 @@
 declare(strict_types=1);
 namespace Monster\JsonataPhp;
 
-class Symbol implements \JsonSerializable
+class Symbol implements \JsonSerializable, \Stringable
 {
-    // In PHP, class properties are declared with a visibility modifier.
-    // We use public for simplicity, but you can change this to public
-    // or protected as needed. The ? before the type denotes a nullable property.
-    public ?string $id;
-    public ?string $type;
-    public $value; // PHP's `mixed` type can be used for Any, but for older PHP versions, no type hint is the equivalent.
-    public int $bp;
+    public ?string $type = null;
+    public $value;
     public int $lbp;
     public int $position;
     public bool $keepArray;
     public bool $descending;
-    public ?Symbol $expression;
-    public ?array $seekingParent;
-    public ?array $errors;
-    public ?array $steps;
-    public ?Symbol $slot;
-    public ?Symbol $nextFunction;
+    public ?Symbol $expression = null;
+    public ?array $seekingParent = null;
+    public ?array $errors = null;
+    public ?array $steps = null;
+    public ?Symbol $slot = null;
+    public ?Symbol $nextFunction = null;
     public bool $keepSingletonArray;
     public bool $consarray;
     public int $level;
@@ -30,57 +25,51 @@ class Symbol implements \JsonSerializable
     public bool $thunk;
 
     // Procedure attributes
-    public ?Symbol $procedure;
-    public ?array $arguments;
-    public ?Symbol $body;
-    public ?array $predicate;
-    public ?array $stages;
+    public ?Symbol $procedure = null;
+    public ?array $arguments = null;
+    public ?Symbol $body = null;
+    public ?array $predicate = null;
+    public ?array $stages = null;
     public $input;
     // public ?Parser\Jsonata\Frame $environment; // Removed as it creates a circular reference in the Python code
     public $tuple;
     public $expr;
-    public ?Symbol $group;
-    public ?Symbol $name;
+    public ?Symbol $group = null;
+    public ?Symbol $name = null;
 
     // Infix attributes
-    public ?Symbol $lhs;
-    public ?Symbol $rhs;
-    public ?array $lhsObject;
-    public ?array $rhsObject;
-    public ?array $rhsTerms;
-    public ?array $terms;
+    public ?Symbol $lhs = null;
+    public ?Symbol $rhs = null;
+    public ?array $lhsObject = null;
+    public ?array $rhsObject = null;
+    public ?array $rhsTerms = null;
+    public ?array $terms = null;
 
     // Ternary operator attributes
-    public ?Symbol $condition;
-    public ?Symbol $then;
-    public ?Symbol $else; // _else is a reserved keyword in PHP, so we change it to 'else'
+    public ?Symbol $condition = null;
+    public ?Symbol $then = null;
+    public ?Symbol $else = null; // _else is a reserved keyword in PHP, so we change it to 'else'
 
-    public ?array $expressions;
+    public ?array $expressions = null;
 
     // processAST error handling
-    public ?JException $error;
+    public ?JException $error = null;
     public $signature;
 
     // Prefix attributes
-    public ?Symbol $pattern;
-    public ?Symbol $update;
-    public ?Symbol $delete;
+    public ?Symbol $pattern = null;
+    public ?Symbol $update = null;
+    public ?Symbol $delete = null;
 
     // Ancestor attributes
-    public ?string $label;
+    public ?string $label = null;
     public $index;
     public bool $jsonataLambda;
-    public ?Symbol $ancestor;
+    public ?Symbol $ancestor = null;
 
-    // The PHP equivalent of Python's _outer_instance
-    public Parser $outerInstance;
-
-    public function __construct(Parser $outerInstance, ?string $id = null, int $bp = 0)
+    public function __construct(public Parser $outerInstance, public ?string $id = null, public int $bp = 0)
     {
-        $this->outerInstance = $outerInstance;
-        $this->id = $id;
-        $this->value = $id;
-        $this->bp = $bp;
+        $this->value = $this->id;
     }
 
     // `nud` method (Null Denotation)
@@ -127,7 +116,7 @@ class Symbol implements \JsonSerializable
     public function __toString(): string
     {
         // get_class($this) returns the class name of the current object.
-        $className = get_class($this);
+        $className = static::class;
         return $className . " " . $this->id . " value=" . $this->value;
     }
 

@@ -5,9 +5,8 @@ namespace Monster\JsonataPhp;
 
 class Tokenizer
 {
-    private string $path;
     private int $position = 0;
-    private int $length;
+    private readonly int $length;
 
     const operators = [
         "." => 75,
@@ -61,10 +60,9 @@ class Tokenizer
         "t" => "\t"
     ];
 
-    public function __construct(string $path)
+    public function __construct(private string $path)
     {
-        $this->path = $path;
-        $this->length = strlen($path);
+        $this->length = strlen($this->path);
     }
 
     private function create(string $type, mixed $value): JsonataToken
@@ -233,20 +231,13 @@ class Tokenizer
             return $this->create("variable", substr($name, 1));
         }
 
-        switch ($name) {
-            case "or":
-            case "in":
-            case "and":
-                return $this->create("operator", $name);
-            case "true":
-                return $this->create("value", true);
-            case "false":
-                return $this->create("value", false);
-            case "null":
-                return $this->create("value", null);
-            default:
-                return $this->create("name", $name);
-        }
+        return match ($name) {
+            "or", "in", "and" => $this->create("operator", $name),
+            "true" => $this->create("value", true),
+            "false" => $this->create("value", false),
+            "null" => $this->create("value", null),
+            default => $this->create("name", $name),
+        };
     }
 
     public function tokens()

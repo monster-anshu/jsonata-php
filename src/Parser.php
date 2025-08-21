@@ -133,7 +133,7 @@ class Parser
         $next_token = $this->lexer->next($infix);
         if ($next_token === null) {
             $this->node = $this->symbolTable['(end)'];
-            $this->node->position = strlen($this->source);
+            $this->node->position = strlen((string) $this->source);
             return $this->node;
         }
         $value = $next_token->value;
@@ -536,9 +536,9 @@ class Parser
                         }
 
                         if ($type === 'stages') {
-                            $step->stages = $step->stages ?? [];
+                            $step->stages ??= [];
                         } else {
-                            $step->predicate = $step->predicate ?? [];
+                            $step->predicate ??= [];
                         }
 
                         $predicate = $this->processAST($expr->rhs);

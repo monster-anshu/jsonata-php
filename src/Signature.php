@@ -8,7 +8,6 @@ class Signature
     const SERIAL_VERSION_UID = -450755246855587271;
 
     public string $signature;
-    public string $functionName;
 
     public SignatureParam $param;
     /** @var SignatureParam[] */
@@ -17,11 +16,10 @@ class Signature
     public ?\RegexIterator $regex = null;
     public string $compiledSignature = "";
 
-    public function __construct(string $signature, string $function)
+    public function __construct(string $signature, public string $functionName)
     {
         $this->param = new SignatureParam();
         $this->prevParam = $this->param;
-        $this->functionName = $function;
         $this->parseSignature($signature);
     }
 
@@ -186,7 +184,7 @@ class Signature
     {
         $res = 0;
         foreach ($this->params as $p) {
-            if (!str_contains($p->regex, "?")) {
+            if (!str_contains((string) $p->regex, "?")) {
                 $res++;
             }
         }
@@ -194,7 +192,7 @@ class Signature
     }
 }
 
-class SignatureParam
+class SignatureParam implements \Stringable
 {
     public ?string $type = null;
     public ?string $regex = null;
