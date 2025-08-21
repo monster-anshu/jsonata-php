@@ -1,0 +1,16 @@
+{
+    "name": "monster/jsonata-php",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Monster\\JsonataPhp\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Himanshu Gunwant",
+            "email": "hgunwant2312@gmail.com"
+        }
+    ],
+    "require": {}
+}
