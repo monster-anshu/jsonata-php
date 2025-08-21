@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Monster\JsonataPhp;
 
 
-class InfixObjectConstructor extends Infix
+class _InfixObjectConstructor extends _Infix
 {
     public function __construct(Parser $outerInstance, int $bp)
     {

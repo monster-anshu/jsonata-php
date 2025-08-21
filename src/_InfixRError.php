@@ -3,7 +3,7 @@
 declare(strict_types=1);
 namespace Monster\JsonataPhp;
 
-class InfixRError extends Infix
+class _InfixRError extends _Infix
 {
     public function __construct(Parser $outerInstance)
     {

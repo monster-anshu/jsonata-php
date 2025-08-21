@@ -3,16 +3,15 @@
 declare(strict_types=1);
 namespace Monster\JsonataPhp;
 
-class InfixFieldWildcard extends Infix
+class _InfixIn extends _Infix
 {
     public function __construct(Parser $outerInstance)
     {
-        parent::__construct($outerInstance, "*");
+        parent::__construct($outerInstance, "in");
     }
 
     public function nud(): Symbol
     {
-        $this->type = "wildcard";
         return $this;
     }
 }

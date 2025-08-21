@@ -3,7 +3,7 @@
 declare(strict_types=1);
 namespace Monster\JsonataPhp;
 
-class PrefixDescendantWildcard extends Prefix
+class _PrefixDescendantWildcard extends _Prefix
 {
     public function __construct(Parser $outerInstance)
     {

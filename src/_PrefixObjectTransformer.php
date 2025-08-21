@@ -3,7 +3,7 @@
 declare(strict_types=1);
 namespace Monster\JsonataPhp;
 
-class PrefixObjectTransformer extends Prefix
+class _PrefixObjectTransformer extends _Prefix
 {
     public function __construct(Parser $outerInstance)
     {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Monster\JsonataPhp;
 
 
-class InfixRBindVariable extends InfixR
+class _InfixRBindVariable extends _InfixR
 {
     public function __construct(Parser $outerInstance, int $bp)
     {

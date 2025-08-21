@@ -12,5 +12,7 @@
             "email": "hgunwant2312@gmail.com"
         }
     ],
-    "require": {}
+    "require-dev": {
+        "rector/rector": "^2.1"
+    }
 }

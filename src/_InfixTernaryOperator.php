@@ -3,7 +3,7 @@
 declare(strict_types=1);
 namespace Monster\JsonataPhp;
 
-class InfixTernaryOperator extends Infix
+class _InfixTernaryOperator extends _Infix
 {
     public function __construct(Parser $outerInstance, int $bp)
     {

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 namespace Monster\JsonataPhp;
 
-class Infix extends Symbol
+class _Infix extends Symbol
 {
 
     public function __construct(Parser $outerInstance, ?string $id, int $bp = 0)
