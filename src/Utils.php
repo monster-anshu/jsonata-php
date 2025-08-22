@@ -49,6 +49,47 @@ class Utils
     }
 
     /**
+     * Checks if an array is a "list" (keys are sequential integers from 0).
+     *
+     * @param mixed $arr The array to check.
+     * @return bool True if the array is a list, false otherwise.
+     */
+  public static  function isArray(mixed $arr): bool
+    {
+        if (!is_array($arr)) {
+            return false;
+        }
+        if (empty($arr)) {
+            return true;
+        }
+        if($arr instanceof \ArrayObject) {
+            return true;
+        }
+        return array_keys($arr) === range(0, count($arr) - 1);
+    }
+
+
+    /**
+     * Checks if an array is "associative" (keys are not sequential integers from 0).
+     *
+     * @param mixed $arr The array to check.
+     * @return bool True if the array is associative, false otherwise.
+     */
+   public static function isAssoc(mixed $arr): bool
+    {
+        if(!is_array($arr)) {
+            return false;
+        }
+        // A simple, fast check for a non-empty array
+        if (empty($arr)) {
+            return false;
+        }
+
+        // Returns true if any key is a string or the keys are not a range starting from 0
+        return array_keys($arr) !== range(0, count($arr) - 1);
+    }
+
+    /**
      * Checks if a variable is an array of strings.
      *
      * @param mixed $v The variable to check.
@@ -56,7 +97,7 @@ class Utils
      */
     public static function isArrayOfStrings($v)
     {
-        if (is_array($v)) {
+        if (self::isArray($v)) {
             foreach ($v as $o) {
                 if (!is_string($o)) {
                     return false;
@@ -75,7 +116,7 @@ class Utils
      */
     public static function isArrayOfNumbers($v)
     {
-        if (is_array($v)) {
+        if (self::isArray($v)) {
             foreach ($v as $o) {
                 if (!self::isNumeric($o)) {
                     return false;
@@ -108,24 +149,22 @@ class Utils
      * Creates a new sequence with an optional element.
      *
      * @param mixed $el
-     * @return array|JList
+     * @return JList
      */
     public static function createSequence($el = null)
     {
-        if (self::$none === null) {
-            self::$none = new \stdClass();
-        }
+        $sequence = new JList();
+        $sequence->sequence = true;
 
         if ($el !== self::$none) {
-            if (is_array($el) && count($el) === 1) {
-                $sequence = new JList($el);
+            // Check if the element is an array with only one item
+            if (self::isArray($el) && count($el) === 1) {
+                $sequence[] = reset($el);
             } else {
-                $sequence = new JList([$el]);
+                $sequence[] = $el;
             }
-        } else {
-            $sequence = new JList();
         }
-        $sequence->sequence = true;
+
         return $sequence;
     }
 
@@ -225,9 +264,9 @@ class Utils
      */
     public static function recurse(&$val)
     {
-        if (is_array($val)) {
+        if (self::isArray($val)) {
             self::convertArrayNulls($val);
-        } elseif (is_object($val)) {
+        } elseif (self::isAssoc($val)) {
             self::convertObjectNulls($val);
         }
     }
@@ -295,14 +334,6 @@ class JList extends \ArrayObject
     public function toArray(): array
     {
         return $this->getArrayCopy();
-    }
-
-    /**
-     * Append element to the list
-     */
-    public function add(mixed $value): void
-    {
-        $this->append($value);
     }
 }
 

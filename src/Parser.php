@@ -82,8 +82,8 @@ class Parser
         } elseif ($expr->type === "condition") {
             // Analyze both branches
             $expr->then = $this->tailCallOptimize($expr->then);
-            if (isset($expr->else) && $expr->else !== null) {
-                $expr->else = $this->tailCallOptimize($expr->else);
+            if (isset($expr->_else) && $expr->_else !== null) {
+                $expr->_else = $this->tailCallOptimize($expr->_else);
             }
             $result = $expr;
 
@@ -751,9 +751,9 @@ class Parser
                 $this->pushAncestry($result, $result->condition);
                 $result->then = $this->processAST($expr->then);
                 $this->pushAncestry($result, $result->then);
-                if (isset($expr->else)) {
-                    $result->else = $this->processAST($expr->else);
-                    $this->pushAncestry($result, $result->else);
+                if (isset($expr->_else)) {
+                    $result->_else = $this->processAST($expr->_else);
+                    $this->pushAncestry($result, $result->_else);
                 }
                 break;
 

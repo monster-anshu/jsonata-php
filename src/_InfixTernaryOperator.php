@@ -17,7 +17,7 @@ class _InfixTernaryOperator extends _Infix
         $this->then = $this->outerInstance->expression(0);
         if ($this->outerInstance->node->id === ":") {
             $this->outerInstance->advance(":");
-            $this->else = $this->outerInstance->expression(0);
+            $this->_else = $this->outerInstance->expression(0);
         }
         return $this;
     }

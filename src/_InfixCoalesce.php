@@ -23,7 +23,7 @@ class _InfixCoalesce extends _Infix
         $cond->arguments = [$left];
         $this->condition = $cond;
         $this->then = $left;
-        $this->else = $this->outerInstance->expression(0);
+        $this->_else = $this->outerInstance->expression(0);
         return $this;
     }
 }

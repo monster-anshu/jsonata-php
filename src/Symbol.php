@@ -6,36 +6,39 @@ namespace Monster\JsonataPhp;
 class Symbol implements \JsonSerializable, \Stringable
 {
     public ?string $type = null;
-    public $value;
-    public int $lbp;
-    public int $position;
-    public bool $keepArray;
-    public bool $descending;
+    public $value = null;
+    public int $lbp = 0;
+    public int $position = 0;
+
+    public bool $keepArray = false;
+    public bool $descending = false;
     public ?Symbol $expression = null;
-    public ?array $seekingParent = null;
-    public ?array $errors = null;
+    public ?array $seekingParent = null;   // List<Symbol>
+    public ?array $errors = null;          // List<Exception>
+
     public ?array $steps = null;
     public ?Symbol $slot = null;
     public ?Symbol $nextFunction = null;
-    public bool $keepSingletonArray;
-    public bool $consarray;
-    public int $level;
-    public $focus;
-    public $token;
-    public bool $thunk;
+    public bool $keepSingletonArray = false;
+    public bool $consarray = false;
+    public int $level = 0;
 
-    // Procedure attributes
+    public $focus = null;
+    public $token = null;
+    public bool $thunk = false;
+
+    // Procedure
     public ?Symbol $procedure = null;
     public ?array $arguments = null;
     public ?Symbol $body = null;
     public ?array $predicate = null;
     public ?array $stages = null;
-    public $input;
-    // public ?Parser\Jsonata\Frame $environment; // Removed as it creates a circular reference in the Python code
-    public $tuple;
-    public $expr;
+    public $input = null;
+    public $environment = null; // Frame
+    public $tuple = null;
+    public $expr = null;
     public ?Symbol $group = null;
-    public ?Symbol $name = null;
+    public $name = null;
 
     // Infix attributes
     public ?Symbol $lhs = null;
@@ -45,16 +48,16 @@ class Symbol implements \JsonSerializable, \Stringable
     public ?array $rhsTerms = null;
     public ?array $terms = null;
 
-    // Ternary operator attributes
+    // Ternary operator
     public ?Symbol $condition = null;
     public ?Symbol $then = null;
-    public ?Symbol $else = null; // _else is a reserved keyword in PHP, so we change it to 'else'
+    public ?Symbol $_else = null;
 
     public ?array $expressions = null;
 
-    // processAST error handling
-    public ?JException $error = null;
-    public $signature;
+    // Error handling
+    public $error = null;   // JException
+    public $signature = null;
 
     // Prefix attributes
     public ?Symbol $pattern = null;
@@ -63,18 +66,14 @@ class Symbol implements \JsonSerializable, \Stringable
 
     // Ancestor attributes
     public ?string $label = null;
-    public $index;
-    public bool $jsonataLambda;
-    public ?Symbol $ancestor = null;
-
+    public $index = null;
     public bool $_jsonata_lambda = false;
-    public ?_Frame $environment = null;
-
+    public ?Symbol $ancestor = null;
     public function __construct(public Parser $outerInstance, public ?string $id = null, public int $bp = 0)
     {
         $this->value = $this->id;
+   
     }
-
     // `nud` method (Null Denotation)
     public function nud(): Symbol
     {

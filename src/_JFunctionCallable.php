@@ -29,13 +29,13 @@ class TransformCallable implements _JFunctionCallable
 
         $result = Functions::functionClone($obj);
 
-        $_matches = $this->evaluator->evaluate($this->expr->pattern, $result, $this->environment);
+        $_matches = $this->evaluator->evaluateAst($this->expr->pattern, $result, $this->environment);
         if ($_matches !== null) {
             if (!is_array($_matches)) {
                 $_matches = [$_matches];
             }
             foreach ($_matches as &$match) {
-                $update = $this->evaluator->evaluate($this->expr->update, $match, $this->environment);
+                $update = $this->evaluator->evaluateAst($this->expr->update, $match, $this->environment);
 
                 if ($update !== null) {
                     if (!is_array($update)) {
@@ -49,7 +49,7 @@ class TransformCallable implements _JFunctionCallable
                 }
 
                 if ($this->expr->delete !== null) {
-                    $deletions = $this->evaluator->evaluate($this->expr->delete, $match, $this->environment);
+                    $deletions = $this->evaluator->evaluateAst($this->expr->delete, $match, $this->environment);
                     $val = $deletions;
                     if ($deletions !== null) {
                         if (!is_array($deletions)) {

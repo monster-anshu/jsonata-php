@@ -7,11 +7,15 @@ use Exception;
 
 class Jsonata
 {
-    private readonly Parser $parser;
+    public readonly Parser $parser;
     private mixed $input;
-    private ?_Frame $environment = null;
+    public ?_Frame $environment = null;
     private static ?_Frame $staticFrame = null; // equivalent to: static Frame staticFrame;
-    public function createFrame(?_Frame $enclosingEnvironment = null): _Frame
+    public ?Symbol $ast;
+    private ?array $errors = null;
+    private float $timestamp;
+    private bool $validateInput = true;
+    private function createFrame(?_Frame $enclosingEnvironment = null): _Frame
     {
         if ($enclosingEnvironment) {
             return new _Frame($enclosingEnvironment);
@@ -20,10 +24,9 @@ class Jsonata
         return new _Frame(null);
     }
 
-
     private static ?Symbol $chainAST = null;
 
-    public static function chainAST(): Symbol
+    private static function chainAST(): Symbol
     {
         if (self::$chainAST === null) {
             self::$chainAST = (new Parser())->parse(
@@ -45,9 +48,96 @@ class Jsonata
 
         return $frame;
     }
-    private function __construct()
+    public function __construct(string $expr)
     {
-        $this->parser = new Parser();
+        try {
+            $this->parser = new Parser();
+            $this->ast = $this->parser->parse($expr);
+            $this->errors = $this->ast->errors;
+            // The Java equivalent for `ast.errors = null`
+            unset($this->ast->errors);
+        } catch (JException $err) {
+            // Re-throw the exception as per the original Java code
+            throw $err;
+        }
+
+        $this->environment = $this->createFrame();
+        $this->timestamp = microtime(true); // microtime(true) provides a float with more precision than milliseconds
+        Jsonata::$current = $this;
+        // The Java comments for 'now' and 'millis' show how to bind functions.
+        // In PHP, you would use a similar function registration mechanism.
+        // (This part is illustrative and depends on the rest of the Jsonata library)
+        // $this->environment->bind("now", new FunctionDefinition(...));
+        // $this->environment->bind("millis", new FunctionDefinition(...));
+    }
+
+    private static Jsonata $current;
+    public static function current()
+    {
+        //TODO: check this
+        return self::$current;
+    }
+
+
+    // A simple wrapper to call the main evaluate method.
+    public function evaluate(array $input)
+    {
+        return $this->evaluateWithBindings($input, null);
+    }
+
+    /*
+     * Main evaluation method.
+     * @param mixed $input The data to evaluate against.
+     * @param Frame|null $bindings An optional Frame object with variable bindings.
+     * @return mixed The result of the evaluation.
+     * @throws JException If a syntax error exists or an evaluation error occurs.
+     */
+    public function evaluateWithBindings($input, $bindings)
+    {
+        // Throw if the expression compiled with syntax errors.
+        if (!is_null($this->errors)) {
+            throw new JException("S0500", 0);
+        }
+        /**
+         * @var ?_Frame
+         */
+        $exec_env = null;
+        if (!is_null($bindings)) {
+            // The variable bindings have been passed in - create a frame to hold these.
+            $exec_env = $this->createFrame($this->environment);
+            foreach ($bindings->bindings as $key => $value) {
+                $exec_env->bind($key, $value);
+            }
+        } else {
+            $exec_env = $this->environment;
+        }
+
+        // Put the input document into the environment as the root object.
+        $exec_env->bind('$', $input);
+
+        // Capture the timestamp and put it in the execution environment.
+        $this->timestamp = round(microtime(true) * 1000);
+
+        // If the input is a JSON array, then wrap it in a singleton sequence
+        // so it gets treated as a single input.
+        if (Utils::isArray($input) && !Utils::isSequence($input)) {
+            $input = Utils::createSequence($input);
+            $input->outerWrapper = true;
+        }
+
+        if ($this->validateInput) {
+            Functions::validateInput($input);
+        }
+
+        try {
+            $it = $this->evaluateAst($this->ast, $input, $exec_env);
+            $it = Utils::convertNulls($it);
+            return $it;
+        } catch (Exception $err) {
+            // Re-throw the exception after any necessary side-effects on it.
+            $this->populateMessage($err);
+            throw $err;
+        }
     }
 
     /**
@@ -58,7 +148,7 @@ class Jsonata
      * @param _Frame|null $environment Environment
      * @return mixed Evaluated input data
      */
-    public function evaluate(Symbol $expr, mixed $input, ?_Frame $environment = null): mixed
+    public function evaluateAst(Symbol $expr, mixed $input, ?_Frame $environment = null): mixed
     {
         // Thread safety:
         // Make sure each evaluate is executed on an instance per thread
@@ -75,6 +165,14 @@ class Jsonata
         // PHP doesn’t have Java-style thread-locals,
         // so usually we just reuse $this.
         return $this;
+    }
+
+    public function populateMessage(Exception $err): Exception
+    {
+        // The original Java code has commented-out logic, so this simply returns the exception.
+        // If the commented logic were to be ported, it would use regular expressions
+        // and a predefined errorCodes array.
+        return $err;
     }
 
     /**
@@ -176,7 +274,6 @@ class Jsonata
         if ($exitCallback !== null && $exitCallback instanceof _ExitCallback) {
             $exitCallback->callback($expr, $input, $environment, $result);
         }
-
         // mangle result (list of 1 element -> 1 element, empty list -> null)
         if ($result !== null && Utils::isSequence($result) && !$result->tupleStream) {
             /** @var JList $result */
@@ -217,7 +314,6 @@ class Jsonata
         $resultSequence = null;
         $isTupleStream = false;
         $tupleBindings = null;
-
         // evaluate each step in turn
         foreach ($expr->steps as $ii => $step) {
             if ($step->tuple !== null) {
@@ -227,7 +323,7 @@ class Jsonata
             // if the first step is an explicit array constructor,
             // then just evaluate that (i.e. don’t iterate over a context array)
             if ($ii === 0 && $step->consarray) {
-                $resultSequence = $this->evaluate($step, $inputSequence, $environment);
+                $resultSequence = $this->evaluateAst($step, $inputSequence, $environment);
             } else {
                 if ($isTupleStream) {
                     $tupleBindings = $this->evaluateTupleStep($step, $inputSequence, $tupleBindings ?? [], $environment);
@@ -297,7 +393,7 @@ class Jsonata
      * @param _Frame $environment     Environment
      * @return array|JList           Evaluated input data
      */
-    public function evaluateTupleStep(Symbol $expr, array|JList $input, ?array $tupleBindings, _Frame $environment): array|JList
+    private function evaluateTupleStep(Symbol $expr, array|JList $input, ?array $tupleBindings, _Frame $environment): array|JList
     {
         $result = null;
 
@@ -344,10 +440,10 @@ class Jsonata
         foreach ($tupleBindings as $binding) {
             $stepEnv = $this->createFrameFromTuple($environment, $binding);
 
-            $_res = $this->evaluate($expr, $binding['@'], $stepEnv);
+            $_res = $this->evaluateAst($expr, $binding['@'], $stepEnv);
 
             if ($_res !== null) {
-                $res = is_array($_res) ? $_res : [$_res];
+                $res = Utils::isArray($_res) ? $_res : [$_res];
 
                 foreach ($res as $bb => $val) {
                     $tuple = $binding; // clone
@@ -392,7 +488,7 @@ class Jsonata
      * @param bool $lastStep Flag the last step in a path
      * @return mixed Evaluated input data
      */
-    public function evaluateStep(Symbol $expr, array|JList $input, _Frame $environment, bool $lastStep): mixed
+    private function evaluateStep(Symbol $expr, array|JList $input, _Frame $environment, bool $lastStep): mixed
     {
         $result = null;
 
@@ -409,33 +505,31 @@ class Jsonata
         $result = Utils::createSequence();
 
         foreach ($input as $item) {
-            $res = $this->evaluate($expr, $item, $environment);
-
+            $res = $this->evaluateAst($expr, $item, $environment);
             if ($expr->stages !== null) {
                 foreach ($expr->stages as $stage) {
                     $res = $this->evaluateFilter($stage->expr, $res, $environment);
                 }
             }
-
+            
             if ($res !== null) {
-                $result[] = $res;
+                $result->append($res);
             }
         }
 
         $resultSequence = Utils::createSequence();
-
         // special case when last step
         if (
             $lastStep &&
             count($result) === 1 &&
-            is_array($result[0]) &&
-            !Utils::isSequence($result[0])
+            Utils::isArray($result->get(0)) &&
+            !Utils::isSequence($result->get(0))
         ) {
             $resultSequence = $result[0];
         } else {
             // flatten the sequence
             foreach ($result as $res) {
-                if (!is_array($res) || ($res instanceof JList && $res->cons)) {
+                if (!Utils::isArray($res) || ($res instanceof JList && $res->cons)) {
                     // it's not an array - just push into the result sequence
                     $resultSequence[] = $res;
                 } else {
@@ -446,7 +540,6 @@ class Jsonata
                 }
             }
         }
-
         return $resultSequence;
     }
 
@@ -460,7 +553,7 @@ class Jsonata
      * @return array|JList Ordered sequence
      * @throws JException
      */
-    public function evaluateSortExpression(Symbol $expr, array|JList $input, _Frame $environment): array|JList
+    private function evaluateSortExpression(Symbol $expr, array|JList $input, _Frame $environment): array|JList
     {
         // evaluate the lhs, then sort the results in order according to rhs expression
         $lhs = $input;
@@ -481,7 +574,7 @@ class Jsonata
                     $context = $a['@'] ?? null;
                     $env = $this->createFrameFromTuple($environment, $a);
                 }
-                $aa = $this->evaluate($term->expression, $context, $env);
+                $aa = $this->evaluateAst($term->expression, $context, $env);
 
                 // ---- evaluate sort term in context of $b ----
                 $context = $b;
@@ -490,7 +583,7 @@ class Jsonata
                     $context = $b['@'] ?? null;
                     $env = $this->createFrameFromTuple($environment, $b);
                 }
-                $bb = $this->evaluate($term->expression, $context, $env);
+                $bb = $this->evaluateAst($term->expression, $context, $env);
 
                 // ---- type checks ----
                 if ($aa === null) {
@@ -554,7 +647,7 @@ class Jsonata
      * @return mixed
      * @throws JException
      */
-    public function evaluateStages(array $stages, mixed $input, _Frame $environment): mixed
+    private function evaluateStages(array $stages, mixed $input, _Frame $environment): mixed
     {
         $result = $input;
 
@@ -565,15 +658,9 @@ class Jsonata
                     break;
 
                 case "index":
-                    if (is_array($result)) {
+                    if (Utils::isArray($result)) {
                         foreach ($result as $ee => &$tuple) {
-                            if (is_array($tuple)) {
-                                $tuple[(string) $stage->value] = $ee;
-                            } elseif ($tuple instanceof \ArrayAccess) {
-                                $tuple[(string) $stage->value] = $ee;
-                            } elseif ($tuple instanceof \stdClass) {
-                                $tuple->{(string) $stage->value} = $ee;
-                            }
+                            $tuple[strval($stage->value)] = $ee;
                         }
                     }
                     break;
@@ -592,18 +679,18 @@ class Jsonata
      * @return mixed
      * @throws JException
      */
-    public function evaluateBinary(Symbol $expr, mixed $input, _Frame $environment): mixed
+    private function evaluateBinary(Symbol $expr, mixed $input, _Frame $environment): mixed
     {
         /** @var _Infix $expr */
         // $expr = $expr; // cast-like comment, PHP doesn't need actual cast
         $result = null;
 
-        $lhs = $this->evaluate($expr->lhs, $input, $environment);
+        $lhs = $this->evaluateAst($expr->lhs, $input, $environment);
         $op = (string) $expr->value;
 
         if ($op === "and" || $op === "or") {
             // defer evaluation of RHS to allow short-circuiting
-            $evalrhs = (fn() => $this->evaluate($expr->rhs, $input, $environment));
+            $evalrhs = (fn() => $this->evaluateAst($expr->rhs, $input, $environment));
 
             try {
                 return $this->evaluateBooleanExpression($lhs, $evalrhs, $op);
@@ -615,7 +702,7 @@ class Jsonata
             }
         }
 
-        $rhs = $this->evaluate($expr->rhs, $input, $environment);
+        $rhs = $this->evaluateAst($expr->rhs, $input, $environment);
 
         try {
             $result = match ($op) {
@@ -644,7 +731,7 @@ class Jsonata
      * @return bool
      * @throws \Exception
      */
-    public function evaluateBooleanExpression(mixed $lhs, callable $evalrhs, string $op): bool
+    private function evaluateBooleanExpression(mixed $lhs, callable $evalrhs, string $op): bool
     {
         $result = false;
         $lBool = static::boolize($lhs);
@@ -678,7 +765,7 @@ class Jsonata
      * @return mixed Result (number or null)
      * @throws JException
      */
-    public function evaluateNumericExpression(mixed $lhs, mixed $rhs, string $op): mixed
+    private function evaluateNumericExpression(mixed $lhs, mixed $rhs, string $op): mixed
     {
         if ($lhs !== null && !Utils::isNumeric($lhs)) {
             throw new JException("T2001", -1, [$op, $lhs]);
@@ -826,7 +913,7 @@ class Jsonata
      * @return array|null Resultant array or null
      * @throws JException
      */
-    public function evaluateRangeExpression(mixed $lhs, mixed $rhs): ?array
+    private function evaluateRangeExpression(mixed $lhs, mixed $rhs): ?array
     {
         $result = null;
 
@@ -878,7 +965,7 @@ class Jsonata
             return false;
         }
 
-        if (!is_array($rhs)) {
+        if (!Utils::isArray($rhs)) {
             $rhs = [$rhs];
         }
 
@@ -909,7 +996,7 @@ class Jsonata
 
         switch ((string) $expr->value) {
             case "-":
-                $result = $this->evaluate($expr->expression, $input, $environment);
+                $result = $this->evaluateAst($expr->expression, $input, $environment);
                 if ($result === null) {
                     $result = null;
                 } elseif (Utils::isNumeric($result)) {
@@ -930,10 +1017,10 @@ class Jsonata
                 $idx = 0;
                 foreach ($expr->expressions as $item) {
                     $environment->isParallelCall = $idx > 0;
-                    $value = $this->evaluate($item, $input, $environment);
+                    $value = $this->evaluateAst($item, $input, $environment);
                     if ($value !== null) {
                         if ((string) $item->value === "[") {
-                            $result->add($value);
+                            $result->append($value);
                         } else {
                             $result = Functions::append($result, $value);
                         }
@@ -997,23 +1084,23 @@ class Jsonata
             $input = $input->get(0);
         }
 
-        if ($input !== null && is_array($input)) {
+        if ($input !== null && Utils::isAssoc($input)) {
             // input is a map (associative array in PHP)
             foreach ($input as $value) {
-                if (is_array($value)) {
+                if (Utils::isArray($value)) {
                     $value = $this->flatten($value, null);
                     $results = Functions::append($results, $value);
                 } else {
                     $results[] = $value;
                 }
             }
-        } elseif (is_array($input) || $input instanceof JList) {
+        } elseif (Utils::isArray($input) || $input instanceof JList) {
             // input is a list
             foreach ($input as $value) {
-                if (is_array($value)) {
+                if (Utils::isArray($value)) {
                     $value = $this->flatten($value, null);
                     $results = Functions::append($results, $value);
-                } elseif (is_array($value)) {
+                } elseif (Utils::isAssoc($value)) {
                     // recursive call for nested map
                     $results = array_merge($results, $this->evaluateWildcard($expr, $value));
                 } else {
@@ -1038,7 +1125,7 @@ class Jsonata
             $flattened = [];
         }
 
-        if (is_array($arg)) {
+        if (Utils::isArray($arg)) {
             foreach ($arg as $item) {
                 $flattened = $this->flatten($item, $flattened);
             }
@@ -1080,25 +1167,25 @@ class Jsonata
      * Recurse through descendants
      *
      * @param mixed $input   Input data
-     * @param array &$results Results (passed by reference)
+     * @param JList &$results Results (passed by reference)
      * @return void
      */
-    private function recurseDescendants($input, array &$results): void
+    private function recurseDescendants($input, JList &$results): void
     {
         // this is the equivalent of //* in XPath
-        if (!is_array($input)) {
+        if (!Utils::isArray($input)) {
             $results[] = $input;
         }
 
-        if (is_array($input)) {
+        if (Utils::isArray($input)) {
             // treat as list/map — foreach works for both
             foreach ($input as $member) {
                 $this->recurseDescendants($member, $results);
             }
-        } elseif (is_object($input)) {
-            // if it's an object, recurse through its public properties
-            foreach (get_object_vars($input) as $member) {
-                $this->recurseDescendants($member, $results);
+        } elseif (Utils::isAssoc($input)) {
+            // treat as list/map — foreach works for both
+            foreach (array_keys($input) as $key) {
+                $this->recurseDescendants($input[$key], $results);
             }
         }
     }
@@ -1116,12 +1203,12 @@ class Jsonata
     {
         $result = null;
 
-        $condition = $this->evaluate($expr->condition, $input, $environment);
+        $condition = $this->evaluateAst($expr->condition, $input, $environment);
 
         if (static::boolize($condition)) {
-            $result = $this->evaluate($expr->then, $input, $environment);
+            $result = $this->evaluateAst($expr->then, $input, $environment);
         } elseif ($expr->_else !== null) {
-            $result = $this->evaluate($expr->_else, $input, $environment);
+            $result = $this->evaluateAst($expr->_else, $input, $environment);
         }
 
         return $result;
@@ -1145,7 +1232,7 @@ class Jsonata
 
         // invoke each expression in turn, only return the result of the last one
         foreach ($expr->expressions as $ex) {
-            $result = $this->evaluate($ex, $input, $frame);
+            $result = $this->evaluateAst($ex, $input, $frame);
         }
 
         return $result;
@@ -1163,7 +1250,7 @@ class Jsonata
     {
         // The RHS is the expression to evaluate
         // The LHS is the name of the variable to bind to
-        $value = $this->evaluate($expr->rhs, $input, $environment);
+        $value = $this->evaluateAst($expr->rhs, $input, $environment);
 
         // Bind the value to the variable name in the environment
         $environment->bind((string) $expr->lhs->value, $value);
@@ -1202,7 +1289,7 @@ class Jsonata
     }
 
 
-    public function evaluateVariable(Symbol $expr, object $input, _Frame $environment): mixed
+    private function evaluateVariable(Symbol $expr, object $input, _Frame $environment): mixed
     {
         $result = null;
 
@@ -1223,7 +1310,7 @@ class Jsonata
         return $result;
     }
 
-    public function evaluateLambda(Symbol $expr, object $input, _Frame $environment): Symbol
+    private function evaluateLambda(Symbol $expr, object $input, _Frame $environment): Symbol
     {
         // create a closure-like object
         $procedure = new Symbol($this->parser);
@@ -1247,7 +1334,7 @@ class Jsonata
         return $procedure;
     }
 
-    public function evaluatePartialApplication(Symbol $expr, object $input, _Frame $environment): mixed
+    private function evaluatePartialApplication(Symbol $expr, object $input, _Frame $environment): mixed
     {
         $result = null;
 
@@ -1258,12 +1345,12 @@ class Jsonata
             if ($arg->type === "operator" && $arg->value === "?") {
                 $evaluatedArgs[] = $arg;
             } else {
-                $evaluatedArgs[] = $this->evaluate($arg, $input, $environment);
+                $evaluatedArgs[] = $this->evaluateAst($arg, $input, $environment);
             }
         }
 
         // lookup the procedure
-        $proc = $this->evaluate($expr->procedure, $input, $environment);
+        $proc = $this->evaluateAst($expr->procedure, $input, $environment);
 
         if (
             $proc !== null && $expr->procedure->type === "path"
@@ -1294,7 +1381,7 @@ class Jsonata
     }
 
 
-    public function partialApplyProcedure(Symbol $proc, array $args): Symbol
+    private function partialApplyProcedure(Symbol $proc, array $args): Symbol
     {
         // create a closure, bind the supplied parameters, return an object that takes remaining (?) parameters
         $env = $this->createFrame($proc->environment ?? $this->environment);
@@ -1324,7 +1411,7 @@ class Jsonata
     }
 
 
-    public function partialApplyNativeFunction(_JFunction $_native, array $args): Symbol
+    private function partialApplyNativeFunction(_JFunction $_native, array $args): Symbol
     {
         // create a lambda object that wraps and invokes the native function
         $sigArgs = [];
@@ -1359,17 +1446,17 @@ class Jsonata
 
 
 
-    public function evaluateApplyExpression(Symbol $expr, object $input, _Frame $environment): mixed
+    private function evaluateApplyExpression(Symbol $expr, object $input, _Frame $environment): mixed
     {
         $result = null;
 
-        $lhs = $this->evaluate($expr->lhs, $input, $environment);
+        $lhs = $this->evaluateAst($expr->lhs, $input, $environment);
 
         if ($expr->rhs->type === "function") {
             // lhs expression as the first argument
             $result = $this->evaluateFunction($expr->rhs, $input, $environment, $lhs);
         } else {
-            $func = $this->evaluate($expr->rhs, $input, $environment);
+            $func = $this->evaluateAst($expr->rhs, $input, $environment);
 
             if (!$this->isFunctionLike($func) && !$this->isFunctionLike($lhs)) {
                 throw new JException(
@@ -1382,7 +1469,7 @@ class Jsonata
             if ($this->isFunctionLike($lhs)) {
                 // Object chaining (func1 ~> func2)
                 // λ($f, $g) { λ($x){ $g($f($x)) } }
-                $chain = $this->evaluate(static::chainAST(), null, $environment);
+                $chain = $this->evaluateAst(static::chainAST(), null, $environment);
                 $args = [$lhs, $func];
                 $result = $this->apply($chain, $args, null, $environment);
             } else {
@@ -1395,7 +1482,7 @@ class Jsonata
     }
 
 
-    public function isFunctionLike(object $o): bool
+    private function isFunctionLike(object $o): bool
     {
         //TODO: create pattern class
         // return Utils::isFunction($o) || Functions::isLambda($o) || $o instanceof Pattern;
@@ -1410,14 +1497,14 @@ class Jsonata
 
 
 
-    public function evaluateTransformExpression(Symbol $expr, object $input, _Frame $environment): _JFunction
+    private function evaluateTransformExpression(Symbol $expr, object $input, _Frame $environment): _JFunction
     {
         $transformer = new TransformCallable($expr, $environment, $this);
         $jFunction = new _JFunction($transformer, "<(oa):o>");
         return $jFunction;
     }
 
-    public function evaluateFilter(object $_predicate, object $input, _Frame $environment): array|JList
+    private function evaluateFilter(object $_predicate, object $input, _Frame $environment): array|JList
     {
         $predicate = $_predicate; // Symbol
         $results = Utils::createSequence();
@@ -1426,7 +1513,7 @@ class Jsonata
             $results->tupleStream = true;
         }
 
-        if (!is_array($input)) {
+        if (!Utils::isArray($input)) {
             $input = Utils::createSequence($input);
         }
 
@@ -1437,7 +1524,7 @@ class Jsonata
             }
             $item = $index < count($input) ? $input[$index] : null;
             if ($item !== null) {
-                if (is_array($item)) {
+                if (Utils::isArray($item)) {
                     $results = $item;
                 } else {
                     $results[] = $item;
@@ -1454,7 +1541,7 @@ class Jsonata
                     $env = $this->createFrameFromTuple($environment, $item);
                 }
 
-                $res = $this->evaluate($predicate, $context, $env);
+                $res = $this->evaluateAst($predicate, $context, $env);
 
                 if (Utils::isNumeric($res)) {
                     $res = Utils::createSequence($res);
@@ -1479,13 +1566,13 @@ class Jsonata
         return $results;
     }
 
-    public function evaluateGroupExpression(Symbol $expr, object $_input, _Frame $environment): array
+    private function evaluateGroupExpression(Symbol $expr, object $_input, _Frame $environment): array
     {
         $result = [];
         $groups = [];
         $reduce = ($_input instanceof JList) && $_input->tupleStream;
 
-        if (!is_array($_input)) {
+        if (!Utils::isArray($_input)) {
             $_input = Utils::createSequence($_input);
         }
 
@@ -1493,14 +1580,14 @@ class Jsonata
 
         // if input is empty, add null to enable literal JSON object generation
         if (empty($input)) {
-            $input[] = null;
+            $input->append(null);
         }
 
         foreach ($input as $item) {
             $env = $reduce ? $this->createFrameFromTuple($environment, $item) : $environment;
 
             foreach ($expr->lhsObject as $pairIndex => $pair) {
-                $key = $this->evaluate($pair[0], $reduce ? ($item['@'] ?? null) : $item, $env);
+                $key = $this->evaluateAst($pair[0], $reduce ? ($item['@'] ?? null) : $item, $env);
 
                 // key must be string
                 if ($key !== null && !is_string($key)) {
@@ -1539,7 +1626,7 @@ class Jsonata
 
             $env->isParallelCall = $idx > 0;
 
-            $res = $this->evaluate($expr->lhsObject[$entry->exprIndex][1], $context, $env);
+            $res = $this->evaluateAst($expr->lhsObject[$entry->exprIndex][1], $context, $env);
             if ($res !== null) {
                 $result[$key] = $res;
             }
@@ -1550,9 +1637,9 @@ class Jsonata
         return $result;
     }
 
-    public function reduceTupleStream(mixed $_tupleStream): array|object
+    private function reduceTupleStream(mixed $_tupleStream): array|object
     {
-        if (!is_array($_tupleStream)) {
+        if (!Utils::isArray($_tupleStream)) {
             return $_tupleStream;
         }
 
@@ -1570,6 +1657,8 @@ class Jsonata
 
         return $result;
     }
+
+
 
 
 }

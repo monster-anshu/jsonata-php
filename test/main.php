@@ -2,10 +2,9 @@
 
 require __DIR__ . '/../vendor/autoload.php';
 
-use Monster\JsonataPhp\Parser;
+use Monster\JsonataPhp\Jsonata;
 
-const expression = 'hello';
+const expression = 'Account.Order';
 
-$parser = new Parser();
-$ast = $parser->parse(expression);
-print_r(json_encode($ast,JSON_PRETTY_PRINT));
+$jsonata = new Jsonata(expression);
+print_r(json_encode($jsonata->ast,JSON_PRETTY_PRINT));

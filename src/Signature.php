@@ -68,10 +68,10 @@ class Signature
         if (is_int($value) || is_float($value)) {
             return "n";
         }
-        if (is_array($value)) {
+        if (Utils::isArray($value)) {
             return "a";
         }
-        if (is_object($value)) {
+        if (Utils::isAssoc($value)) {
             return "o";
         }
         return "m"; // missing
