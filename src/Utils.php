@@ -3,11 +3,6 @@
 declare(strict_types=1);
 namespace Monster\JsonataPhp;
 
-class JFunctionCallable
-{
-
-}
-
 class Utils
 {
     /**
@@ -24,6 +19,7 @@ class Utils
             }
         };
     }
+
 
     /**
      * Checks if a variable is a numeric type.
@@ -100,7 +96,7 @@ class Utils
     {
         // Placeholder for the JFunctionCallable class from the Python code.
         // In a real implementation, you would need to define this class.
-        return $o instanceof JFunctionCallable;
+        return $o instanceof _JFunctionCallable;
     }
 
     /**
@@ -112,7 +108,7 @@ class Utils
      * Creates a new sequence with an optional element.
      *
      * @param mixed $el
-     * @return JList
+     * @return array|JList
      */
     public static function createSequence($el = null)
     {
@@ -247,24 +243,69 @@ class Utils
         self::recurse($res);
         return self::convertValue($res);
     }
+
+    public static function RangeList(mixed $a, mixed $b): array
+    {
+        return new RangeList($a, $b);
+    }
 }
 
 // PHP doesn't support nested classes in the same way as Python.
 // We'll define the nested classes outside of the main Utils class.
-
 class JList extends \ArrayObject
 {
-    public $sequence = false;
-    public $outerWrapper = false;
-    public $tupleStream = false;
-    public $keepSingleton = false;
-    public $cons = false;
+    public bool $sequence = false;
+    public bool $outerWrapper = false;
+    public bool $tupleStream = false;
+    public bool $keepSingleton = false;
+    public bool $cons = false;
 
-    public function __construct($input = [], $flags = 0, $iterator_class = "ArrayIterator")
+    public function __construct(array $input = [], int $flags = 0, string $iterator_class = "ArrayIterator")
     {
         parent::__construct($input, $flags, $iterator_class);
     }
+
+    /**
+     * Check if list is empty
+     */
+    public function isEmpty(): bool
+    {
+        return $this->count() === 0;
+    }
+
+    /**
+     * Return size of list
+     */
+    public function size(): int
+    {
+        return $this->count();
+    }
+
+    /**
+     * Get element by index
+     */
+    public function get(int $index): mixed
+    {
+        return $this->offsetExists($index) ? $this->offsetGet($index) : null;
+    }
+
+    /**
+     * Convert to normal PHP array
+     */
+    public function toArray(): array
+    {
+        return $this->getArrayCopy();
+    }
+
+    /**
+     * Append element to the list
+     */
+    public function add(mixed $value): void
+    {
+        $this->append($value);
+    }
 }
+
 
 class RangeList extends JList
 {

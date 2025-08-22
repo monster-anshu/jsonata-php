@@ -190,6 +190,12 @@ class Signature
         }
         return $res;
     }
+
+    public function validate($args, $context): bool
+    {
+        //TODO: implement this
+        return true;
+    }
 }
 
 class SignatureParam implements \Stringable

@@ -67,6 +67,9 @@ class Symbol implements \JsonSerializable, \Stringable
     public bool $jsonataLambda;
     public ?Symbol $ancestor = null;
 
+    public bool $_jsonata_lambda = false;
+    public ?_Frame $environment = null;
+
     public function __construct(public Parser $outerInstance, public ?string $id = null, public int $bp = 0)
     {
         $this->value = $this->id;
