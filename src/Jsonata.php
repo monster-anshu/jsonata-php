@@ -80,7 +80,7 @@ class Jsonata
 
 
     // A simple wrapper to call the main evaluate method.
-    public function evaluate(array $input)
+    public function evaluate(mixed $input)
     {
         return $this->evaluateWithBindings($input, null);
     }
@@ -511,7 +511,7 @@ class Jsonata
                     $res = $this->evaluateFilter($stage->expr, $res, $environment);
                 }
             }
-            
+
             if ($res !== null) {
                 $result->append($res);
             }
@@ -985,7 +985,7 @@ class Jsonata
      * Evaluate unary expression against input data
      * @throws JException
      */
-    private function evaluateUnary(Symbol $expr,array $input,_Frame $environment)
+    private function evaluateUnary(Symbol $expr, mixed $input, _Frame $environment)
     {
         $result = null;
 
@@ -1284,7 +1284,7 @@ class Jsonata
     }
 
 
-    private function evaluateVariable(Symbol $expr, array $input, _Frame $environment): mixed
+    private function evaluateVariable(Symbol $expr, mixed $input, _Frame $environment): mixed
     {
         $result = null;
 
@@ -1305,7 +1305,7 @@ class Jsonata
         return $result;
     }
 
-    private function evaluateLambda(Symbol $expr, object $input, _Frame $environment): Symbol
+    private function evaluateLambda(Symbol $expr, mixed $input, _Frame $environment): Symbol
     {
         // create a closure-like object
         $procedure = new Symbol($this->parser);
@@ -1329,7 +1329,7 @@ class Jsonata
         return $procedure;
     }
 
-    private function evaluatePartialApplication(Symbol $expr, object $input, _Frame $environment): mixed
+    private function evaluatePartialApplication(Symbol $expr, mixed $input, _Frame $environment): mixed
     {
         $result = null;
 
@@ -1441,7 +1441,7 @@ class Jsonata
 
 
 
-    private function evaluateApplyExpression(Symbol $expr, object $input, _Frame $environment): mixed
+    private function evaluateApplyExpression(Symbol $expr, mixed $input, _Frame $environment): mixed
     {
         $result = null;
 
@@ -1482,7 +1482,7 @@ class Jsonata
         return Utils::isFunction($o) || Functions::isLambda($o) || $o instanceof _Pattern;
     }
 
-    public function apply(object $proc, object|array $args, ?object $input, object $environment): mixed
+    public function apply(object $proc, object|array $args, mixed $input, object $environment): mixed
     {
         //TODO: implement
         throw new Exception("function calling is not implemented");
@@ -1490,14 +1490,14 @@ class Jsonata
 
 
 
-    private function evaluateTransformExpression(Symbol $expr, object $input, _Frame $environment): _JFunction
+    private function evaluateTransformExpression(Symbol $expr, mixed $input, _Frame $environment): _JFunction
     {
         $transformer = new TransformCallable($expr, $environment, $this);
         $jFunction = new _JFunction($transformer, "<(oa):o>");
         return $jFunction;
     }
 
-    private function evaluateFilter(object $_predicate, object $input, _Frame $environment): array|JList
+    private function evaluateFilter(object $_predicate, mixed $input, _Frame $environment): array|JList
     {
         $predicate = $_predicate; // Symbol
         $results = Utils::createSequence();
