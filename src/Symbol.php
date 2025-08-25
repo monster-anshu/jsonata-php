@@ -69,10 +69,12 @@ class Symbol implements \JsonSerializable, \Stringable
     public $index = null;
     public bool $_jsonata_lambda = false;
     public ?Symbol $ancestor = null;
+
+    protected $construct_args = [];
     public function __construct(public Parser $outerInstance, public ?string $id = null, public int $bp = 0)
     {
+        $this->construct_args = func_get_args();
         $this->value = $this->id;
-   
     }
     // `nud` method (Null Denotation)
     public function nud(): Symbol
@@ -102,14 +104,23 @@ class Symbol implements \JsonSerializable, \Stringable
     public function clone(): Symbol
     {
         // `static` ensures the correct class (late static binding).
-        $cl = new static($this->outerInstance, null);
-
-        foreach ($this as $key => $value) {
-            if ($key !== 'outerInstance') {
+        $cl = new static(...$this->construct_args);
+        foreach (get_object_vars($this) as $key => $value) {
+            if ($key === 'construct_args') {
+                continue;
+            }
+            // Deep clone for Symbol properties
+            if ($value instanceof Symbol) {
+                $cl->$key = $value->clone();
+            } elseif (is_array($value)) {
+                // Recursively clone arrays containing Symbol objects
+                $cl->$key = array_map(function ($item) {
+                    return $item instanceof Symbol ? $item->clone() : $item;
+                }, $value);
+            } else {
                 $cl->$key = $value;
             }
         }
-
         return $cl;
     }
 
@@ -124,16 +135,17 @@ class Symbol implements \JsonSerializable, \Stringable
 
     public function jsonSerialize(): array
     {
-        // get all public properties as an array
         $vars = get_object_vars($this);
-        unset($vars['outerInstance'], $vars['error']);
-        // $vars = [
-        //     'steps' => $this->steps,
-        //     'id' => $this->id,
-        //     'type' => $this->type,
-        //     'value' => $this->value,
-        // ];
-
-        return $vars;
+        $skip_keys = ['outerInstance' , '_jsonata_lambda', 'construct_args'];
+        $result = [];
+        foreach ($vars as $key => $value) {
+            if (in_array($key, $skip_keys, true)) {
+                continue;
+            }
+            if ($value !== null && $value !== false) {
+                $result[$key] = $value;
+            }
+        }
+        return $result;
     }
 }

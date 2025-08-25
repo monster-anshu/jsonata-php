@@ -9,6 +9,7 @@ class _InfixRBindVariable extends _InfixR
     public function __construct(Parser $outerInstance, int $bp)
     {
         parent::__construct($outerInstance, ":=", $bp);
+        $this->construct_args = func_get_args();
     }
 
     public function led(Symbol $left): Symbol

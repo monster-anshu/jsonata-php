@@ -21,45 +21,55 @@ class Parser
 
     public function __construct()
     {
-        $this->register(new _Terminal($this, '(end)',0));
+        $this->register(new _Terminal($this, '(end)', 0));
         $this->register(new _Terminal($this, '(name)'));
         $this->register(new _Terminal($this, '(literal)'));
         $this->register(new _Terminal($this, '(regex)'));
-        $this->register(new Symbol( $this, ':'));
-        $this->register(new Symbol( $this, ';'));
-        $this->register(new Symbol( $this, ','));
-        $this->register(new Symbol( $this, ')'));
-        $this->register(new Symbol( $this, ']'));
-        $this->register(new Symbol( $this, '}'));
-        $this->register(new Symbol( $this, '..'));
-        $this->register(new _Infix($this,'-'));
-        $this->register(new _Infix($this,'*', 0));
-        $this->register(new _Infix($this,'/'));
-        $this->register(new _Infix($this,'%'));
-        $this->register(new _Infix($this,'='));
-        $this->register(new _Infix($this,'<'));
-        $this->register(new _Infix($this,'>'));
-        $this->register(new _Infix($this,'!='));
-        $this->register(new _Infix($this,'<='));
-        $this->register(new _Infix($this,'>='));
-        $this->register(new _Infix($this,'&'));
-        $this->register(new _Infix($this,'and'));
-        $this->register(new _Infix($this,'or'));
-        $this->register(new _Infix($this,'in'));
-        $this->register(new _Infix($this,'~>'));
-        $this->register(new _Infix($this,'??', Tokenizer::operators['??']));
-        $this->register(new _InfixR($this,'(error)', 10));
-        $this->register(new _Prefix($this,'**'));
-        $this->register(new _Infix($this,'(', Tokenizer::operators['(']));
-        $this->register(new _Infix($this,'[', Tokenizer::operators['[']));
-        $this->register(new _Infix($this,'^', Tokenizer::operators['^']));
-        $this->register(new _Infix($this,'{', Tokenizer::operators['{']));
-        $this->register(new _InfixR($this,':=', Tokenizer::operators[':=']));
-        $this->register(new _Infix($this,'@', Tokenizer::operators['@']));
-        $this->register(new _Infix($this,'#', Tokenizer::operators['#']));
-        $this->register(new _Infix($this,'?', Tokenizer::operators['?']));
-        $this->register(new _Infix($this,'?:', Tokenizer::operators['?:']));
-        $this->register(new _Prefix($this,'|'));
+
+        $this->register(new Symbol($this, ':'));
+        $this->register(new Symbol($this, ';'));
+        $this->register(new Symbol($this, ','));
+        $this->register(new Symbol($this, ')'));
+        $this->register(new Symbol($this, ']'));
+        $this->register(new Symbol($this, '}'));
+        $this->register(new Symbol($this, '..'));
+        $this->register(new _Infix($this, '.'));
+        $this->register(new _Infix($this, '+'));
+        $this->register(new _InfixAndPrefix($this, '-'));
+
+        $this->register(new _Infix($this, '/'));
+        $this->register(new _InfixFieldWildcard($this));
+        $this->register(new _InfixParentOperator($this));
+
+        $this->register(new _Infix($this, '='));
+        $this->register(new _Infix($this, '<'));
+        $this->register(new _Infix($this, '>'));
+        $this->register(new _Infix($this, '!='));
+        $this->register(new _Infix($this, '<='));
+        $this->register(new _Infix($this, '>='));
+        $this->register(new _Infix($this, '&'));
+
+        $this->register(new _InfixAnd($this));
+        $this->register(new _InfixOr($this));
+        $this->register(new _InfixIn($this));
+        $this->register(new _Infix($this, '~>'));
+
+        $this->register(new _InfixCoalesce($this, Tokenizer::operators['??']));
+
+        $this->register(new _InfixRError($this));
+
+        $this->register(new _PrefixDescendantWildcard($this));
+
+        $this->register(new _InfixFunctionInvocation($this, Tokenizer::operators['(']));
+        $this->register(new _InfixArrayConstructor($this, Tokenizer::operators['[']));
+        $this->register(new _InfixOrderBy($this, Tokenizer::operators['^']));
+        $this->register(new _InfixObjectConstructor($this, Tokenizer::operators['{']));
+        $this->register(new _InfixRBindVariable($this, Tokenizer::operators[':=']));
+        $this->register(new _InfixFocusVariableBind($this, Tokenizer::operators['@']));
+        $this->register(new _InfixIndexVariableBind($this, Tokenizer::operators['#']));
+        $this->register(new _InfixTernaryOperator($this, Tokenizer::operators['?']));
+        $this->register(new _InfixDefault($this, Tokenizer::operators['?:']));
+        $this->register(new _PrefixObjectTransformer($this));
     }
 
 
@@ -70,7 +80,7 @@ class Parser
 
         if ($expr->type === "function" && $expr->predicate === null) {
             // Replace function with a thunk for tail-call optimization
-            $thunk = new Symbol($this,"");
+            $thunk = new Symbol($this, "");
             $thunk->type = "lambda";
             $thunk->thunk = true;
             $thunk->arguments = [];   // empty arguments list
@@ -166,6 +176,7 @@ class Parser
         $this->node->value = $value;
         $this->node->type = $type;
         $this->node->position = $next_token->position;
+
         return $this->node;
     }
 
@@ -177,9 +188,10 @@ class Parser
         $left = $t->nud();
         while ($rbp < $this->node->lbp) {
             $t = $this->node;
-            $this->advance(null, false);
+            $this->advance();
             $left = $t->led($left);
         }
+
         return $left;
     }
 
@@ -226,6 +238,16 @@ class Parser
             $s->value = $s->id = $t->id;
             $s->lbp = $t->bp;
             $this->symbolTable[$t->id] = $s;
+            if ($this->dbg) {
+                print_r(
+                    "Symbol in table "
+                    . $t->id . " "
+                    . get_class($s) . " -> "
+                    . " s.lbp -> {$s->lbp} s.bp -> {$s->bp}"
+                    // . get_class($t)
+                    . PHP_EOL
+                );
+            }
         }
     }
 
@@ -239,7 +261,7 @@ class Parser
     public function objectParser(?Symbol $left): Symbol
     {
         // If $left is not null, it's an infix operation; otherwise, it's a prefix one.
-        $res = $left !== null ? new _Infix($this,"{") : new _Prefix($this,"{");
+        $res = $left !== null ? new _Infix($this, "{") : new _Prefix($this, "{");
 
         // This array will hold the key/value pairs of the object.
         $a = [];
@@ -467,7 +489,7 @@ class Parser
                         if ($lstep->type === 'path') {
                             $result = $lstep;
                         } else {
-                            $result = new _Infix($this,null);
+                            $result = new _Infix($this, null);
                             $result->type = 'path';
                             $result->steps = [$lstep];
                         }
@@ -480,8 +502,8 @@ class Parser
                         $lastResultStep = end($result->steps);
 
                         if ($rest->type === 'function' && ($rest->procedure->type ?? null) === 'path' && count($rest->procedure->steps) === 1 && $rest->procedure->steps[0]->type === 'name' && $lastResultStep->type === 'function') {
-                            $lastResultStep->next_function ;
-                             $rest->procedure->steps[0]->value;
+                            $lastResultStep->next_function;
+                            $rest->procedure->steps[0]->value;
                         }
 
                         if (($rest->type ?? null) === 'path') {
@@ -673,7 +695,7 @@ class Parser
                         break;
 
                     default:
-                        $newResult = new _Infix($this,null);
+                        $newResult = new _Infix($this, null);
                         $newResult->type = $expr->type;
                         $newResult->value = $expr->value;
                         $newResult->position = $expr->position;

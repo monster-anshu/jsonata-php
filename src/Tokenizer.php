@@ -8,7 +8,7 @@ class Tokenizer
     private int $position = 0;
     private readonly int $length;
 
-    const operators = [
+    public const operators = [
         "." => 75,
         "[" => 80,
         "]" => 0,
@@ -49,7 +49,7 @@ class Tokenizer
         "~" => 0
     ];
 
-    private static array $escapes = [
+    private const escapes = [
         "\"" => "\"",
         "\\" => "\\",
         "/" => "/",
@@ -67,11 +67,6 @@ class Tokenizer
 
     private function create(string $type, mixed $value): JsonataToken
     {
-        // return [
-        //     "type" => $type,
-        //     "value" => $value,
-        //     "position" => $this->position
-        // ];
         return new JsonataToken($type, $value, $this->position);
     }
 
@@ -124,8 +119,8 @@ class Tokenizer
                     throw new \Exception("Unterminated escape sequence");
                 }
                 $esc = $this->path[$this->position];
-                if (isset(self::$escapes[$esc])) {
-                    $qstr .= self::$escapes[$esc];
+                if (self::escapes[$esc] ?? null) {
+                    $qstr .= self::escapes[$esc];
                 } elseif ($esc === "u") {
                     $octets = substr($this->path, $this->position + 1, 4);
                     if (preg_match('/^[0-9a-fA-F]{4}$/', $octets)) {
@@ -187,7 +182,7 @@ class Tokenizer
         }
 
         // single char operator
-        if (isset(self::$operators[$ch])) {
+        if (self::operators[$ch] ?? null) {
             $this->position++;
             return $this->create("operator", $ch);
         }
@@ -243,8 +238,13 @@ class Tokenizer
     public function tokens()
     {
         $tokens = [];
-        while ($token = $this->next()) {
+        $run = True;
+        while ($run) {
+            $token = $this->next();
             $tokens[] = $token;
+            if ($token === null) {
+                $run = false;
+            }
         }
         return $tokens;
     }

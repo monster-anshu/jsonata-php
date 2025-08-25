@@ -8,6 +8,7 @@ class _InfixParentOperator extends _Infix
     public function __construct(Parser $outerInstance)
     {
         parent::__construct($outerInstance, "%");
+        $this->construct_args = func_get_args();
     }
 
     public function nud(): Symbol

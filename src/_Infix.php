@@ -8,8 +8,15 @@ class _Infix extends Symbol
 
     public function __construct(Parser $outerInstance, ?string $id, int $bp = 0)
     {
-        $lbp = $bp !== 0 ? $bp : (Tokenizer::operators[$id] ?? 0);
-        parent::__construct($outerInstance, $id, $lbp);
+        $bp = $bp !== 0 ? $bp : (Tokenizer::operators[$id] ?? 0);
+        if ($outerInstance->dbg) {
+            print_r([
+                'id' => $id,
+                'bp' => $bp,
+            ]);
+        }
+        parent::__construct($outerInstance, $id, $bp);
+        $this->construct_args = func_get_args();
     }
 
     public function led(Symbol $left): Symbol

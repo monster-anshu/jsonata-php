@@ -11,6 +11,7 @@ class _InfixAndPrefix extends _Infix
     {
         parent::__construct($outerInstance, $id, $bp);
         $this->prefix = new _Prefix($this->outerInstance, $id);
+        $this->construct_args = func_get_args();
     }
 
     public function nud(): Symbol
