@@ -1,5 +1,5 @@
 {
-    "name": "monster/jsonata-php",
+    "name": "monster-anshu/jsonata-php",
     "description": "A PHP port of JSONata - a lightweight query and transformation language for JSON.",
     "type": "library",
     "license": "MIT",
