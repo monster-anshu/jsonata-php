@@ -242,7 +242,7 @@ class Parser
                 print_r(
                     "Symbol in table "
                     . $t->id . " "
-                    . get_class($s) . " -> "
+                    . $s::class . " -> "
                     . " s.lbp -> {$s->lbp} s.bp -> {$s->bp}"
                     // . get_class($t)
                     . PHP_EOL

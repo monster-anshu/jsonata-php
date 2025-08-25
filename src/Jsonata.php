@@ -983,14 +983,9 @@ class Jsonata
 
     /**
      * Evaluate unary expression against input data
-     *
-     * @param object $expr - JSONata expression
-     * @param mixed $input - Input data to evaluate against
-     * @param object $environment - Environment
-     * @return mixed Evaluated input data
      * @throws JException
      */
-    private function evaluateUnary($expr, $input, $environment)
+    private function evaluateUnary(Symbol $expr,array $input,_Frame $environment)
     {
         $result = null;
 
@@ -1283,13 +1278,13 @@ class Jsonata
      */
     private function evaluateFunction(Symbol $expr, $input, _Frame $environment, $applytoContext): mixed
     {
-
         //TODO: implement
+        // print(json_encode($expr, JSON_PRETTY_PRINT) . "\n");
         throw new Exception("function calling is not implemented");
     }
 
 
-    private function evaluateVariable(Symbol $expr, object $input, _Frame $environment): mixed
+    private function evaluateVariable(Symbol $expr, array $input, _Frame $environment): mixed
     {
         $result = null;
 
@@ -1484,9 +1479,7 @@ class Jsonata
 
     private function isFunctionLike(object $o): bool
     {
-        //TODO: create pattern class
-        // return Utils::isFunction($o) || Functions::isLambda($o) || $o instanceof Pattern;
-        return Utils::isFunction($o) || Functions::isLambda($o);
+        return Utils::isFunction($o) || Functions::isLambda($o) || $o instanceof _Pattern;
     }
 
     public function apply(object $proc, object|array $args, ?object $input, object $environment): mixed
@@ -1566,7 +1559,7 @@ class Jsonata
         return $results;
     }
 
-    private function evaluateGroupExpression(Symbol $expr, object $_input, _Frame $environment): array
+    private function evaluateGroupExpression(Symbol $expr, mixed $_input, _Frame $environment): array
     {
         $result = [];
         $groups = [];

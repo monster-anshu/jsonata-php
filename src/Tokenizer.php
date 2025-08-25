@@ -3,10 +3,10 @@
 declare(strict_types=1);
 namespace Monster\JsonataPhp;
 
+use Exception;
+
 class Tokenizer
 {
-    private int $position = 0;
-    private readonly int $length;
 
     public const operators = [
         "." => 75,
@@ -49,7 +49,8 @@ class Tokenizer
         "~" => 0
     ];
 
-    private const escapes = [
+    public const escapes = [
+        // JSON string escape sequences - see json.org
         "\"" => "\"",
         "\\" => "\\",
         "/" => "/",
@@ -59,6 +60,9 @@ class Tokenizer
         "r" => "\r",
         "t" => "\t"
     ];
+    private int $position = 0;
+    private readonly int $length;
+    private int $depth = 0;
 
     public function __construct(private string $path)
     {
@@ -67,139 +71,224 @@ class Tokenizer
 
     private function create(string $type, mixed $value): JsonataToken
     {
-        return new JsonataToken($type, $value, $this->position);
+        $t = new JsonataToken(
+            $type,
+            $value,
+            $this->position
+        );
+        return $t;
     }
 
-    private function skipWhitespace(): void
+    private function isClosingSlash(int $pos): bool
     {
-        while ($this->position < $this->length && preg_match('/\s/', $this->path[$this->position])) {
-            $this->position++;
+        if ($pos < 0 || $pos >= $this->length)
+            return false;
+        if ($this->path[$pos] === '/' && $this->depth === 0) {
+            $backslashCount = 0;
+            $i = $pos - 1;
+            while ($i >= 0 && $this->path[$i] === '\\') {
+                $backslashCount++;
+                $i--;
+            }
+            return ($backslashCount % 2) === 0;
         }
+        return false;
     }
 
-    private function scanRegex(): JsonataToken
+    /**
+     * Scan a JavaScript-like /regex/ with optional i,m flags (and implicit g).
+     * @throws JException
+     */
+    private function scanRegex(): _Pattern
     {
         $start = $this->position;
-        $pattern = "";
-        $depth = 0;
-
         while ($this->position < $this->length) {
-            $ch = $this->path[$this->position];
-            if ($ch === '/' && $depth === 0 && ($this->position === 0 || $this->path[$this->position - 1] !== '\\')) {
+            $currentChar = $this->path[$this->position];
+
+            if ($this->isClosingSlash($this->position)) {
                 $pattern = substr($this->path, $start, $this->position - $start);
-                $this->position++;
-                // flags
-                $flags = "";
-                while ($this->position < $this->length && str_contains("im", $this->path[$this->position])) {
-                    $flags .= $this->path[$this->position];
-                    $this->position++;
+                if ($pattern === '') {
+                    throw new JException("S0301", $this->position);
                 }
-                return $this->create("regex", ["pattern" => $pattern, "flags" => $flags . "g"]);
+                $this->position++; // skip closing '/'
+                $flagsStart = $this->position;
+
+                // collect flags i/m (JSONata adds 'g' implicitly; we track it but PCRE doesn't need it)
+                while ($this->position < $this->length) {
+                    $c = $this->path[$this->position];
+                    if ($c === 'i' || $c === 'm') {
+                        $this->position++;
+                    } else {
+                        break;
+                    }
+                }
+                $flags = substr($this->path, $flagsStart, $this->position - $flagsStart) . 'g';
+
+                $phpFlags = '';
+                if (str_contains($flags, 'i'))
+                    $phpFlags .= 'i';
+                if (str_contains($flags, 'm'))
+                    $phpFlags .= 'm';
+
+                // Escape delimiter '/'
+                $pcre = '/' . str_replace('/', '\/', $pattern) . '/' . $phpFlags;
+                return new _Pattern($pcre);
             }
-            if (in_array($ch, ['(', '[', '{']) && ($this->position === 0 || $this->path[$this->position - 1] !== '\\')) {
-                $depth++;
+
+            // track bracket depth unless escaped
+            $prev = $this->position > 0 ? $this->path[$this->position - 1] : null;
+            if (($currentChar === '(' || $currentChar === '[' || $currentChar === '{') && $prev !== '\\') {
+                $this->depth++;
             }
-            if (in_array($ch, [')', ']', '}']) && ($this->position === 0 || $this->path[$this->position - 1] !== '\\')) {
-                $depth--;
+            if (($currentChar === ')' || $currentChar === ']' || $currentChar === '}') && $prev !== '\\') {
+                $this->depth--;
             }
             $this->position++;
         }
-        throw new \Exception("Unterminated regex at pos {$this->position}");
+        throw new JException("S0302", $this->position);
     }
 
-    private function readString(string $quoteType): JsonataToken
+    private function codepointToUtf8(int $codepoint): string
     {
-        $this->position++;
-        $qstr = "";
-        while ($this->position < $this->length) {
-            $ch = $this->path[$this->position];
-            if ($ch === "\\") {
+        // minimal UTF-8 encoder
+        if ($codepoint <= 0x7F) {
+            return chr($codepoint);
+        } elseif ($codepoint <= 0x7FF) {
+            return chr(0xC0 | ($codepoint >> 6)) .
+                chr(0x80 | ($codepoint & 0x3F));
+        } elseif ($codepoint <= 0xFFFF) {
+            return chr(0xE0 | ($codepoint >> 12)) .
+                chr(0x80 | (($codepoint >> 6) & 0x3F)) .
+                chr(0x80 | ($codepoint & 0x3F));
+        } else {
+            return chr(0xF0 | ($codepoint >> 18)) .
+                chr(0x80 | (($codepoint >> 12) & 0x3F)) .
+                chr(0x80 | (($codepoint >> 6) & 0x3F)) .
+                chr(0x80 | ($codepoint & 0x3F));
+        }
+    }
+
+    /**
+     * Returns next token, or null at end.
+     * @throws JException
+     */
+    public function next(bool $prefix = false): ?JsonataToken
+    {
+        if ($this->position >= $this->length)
+            return null;
+
+        $currentChar = $this->path[$this->position];
+
+        // skip whitespace
+        while ($this->position < $this->length && str_contains(" \t\n\r", $currentChar)) {
+            $this->position++;
+            if ($this->position >= $this->length)
+                return null;
+            $currentChar = $this->path[$this->position];
+        }
+
+        // skip comments /* ... */
+        if ($this->position + 1 < $this->length && $currentChar === '/' && $this->path[$this->position + 1] === '*') {
+            $commentStart = $this->position;
+            $this->position += 2;
+            while (
+                $this->position + 1 < $this->length &&
+                !($this->path[$this->position] === '*' && $this->path[$this->position + 1] === '/')
+            ) {
                 $this->position++;
-                if ($this->position >= $this->length) {
-                    throw new \Exception("Unterminated escape sequence");
-                }
-                $esc = $this->path[$this->position];
-                if (self::escapes[$esc] ?? null) {
-                    $qstr .= self::escapes[$esc];
-                } elseif ($esc === "u") {
-                    $octets = substr($this->path, $this->position + 1, 4);
-                    if (preg_match('/^[0-9a-fA-F]{4}$/', $octets)) {
-                        $qstr .= mb_convert_encoding(pack("H*", $octets), "UTF-8", "UTF-16BE");
+            }
+            if ($this->position + 1 >= $this->length) {
+                throw new JException("S0106", $commentStart);
+            }
+            $this->position += 2; // consume */
+            return $this->next($prefix); // swallow following whitespace too
+        }
+
+        // test for regex (only when not in prefix position)
+        if ($prefix !== true && $currentChar === '/') {
+            $this->position++; // consume initial '/'
+            return $this->create("regex", $this->scanRegex());
+        }
+
+        $haveMore = $this->position < $this->length - 1;
+
+        // handle double-char operators (and multi)
+        $two = $haveMore ? $this->path[$this->position] . $this->path[$this->position + 1] : '';
+        switch ($two) {
+            case '..':
+            case ':=':
+            case '!=':
+            case '>=':
+            case '<=':
+            case '**':
+            case '~>':
+            case '?:':
+            case '??':
+                $this->position += 2;
+                return $this->create("operator", $two);
+        }
+
+        // single-char operators
+        if (array_key_exists($currentChar, self::operators)) {
+            $this->position++;
+            return $this->create("operator", $currentChar);
+        }
+
+        // string literals (' or ")
+        if ($currentChar === '"' || $currentChar === "'") {
+            $quoteType = $currentChar;
+            $this->position++; // skip opening quote
+            $qstr = '';
+            while ($this->position < $this->length) {
+                $c = $this->path[$this->position];
+                if ($c === '\\') { // escape
+                    $this->position++;
+                    if ($this->position >= $this->length) {
+                        throw new JException("S0301", $this->position);
+                    }
+                    $esc = $this->path[$this->position];
+                    if (array_key_exists($esc, self::escapes)) {
+                        $qstr .= self::escapes[$esc];
+                    } elseif ($esc === 'u') {
+                        // \uXXXX
+                        if ($this->position + 4 >= $this->length) {
+                            throw new JException("S0104", $this->position);
+                        }
+                        $octets = substr($this->path, $this->position + 1, 4);
+                        if (preg_match('/^[0-9a-fA-F]{4}$/', $octets) !== 1) {
+                            throw new JException("S0104", $this->position);
+                        }
+                        $codepoint = intval($octets, 16);
+                        $qstr .= $this->codepointToUtf8($codepoint);
                         $this->position += 4;
                     } else {
-                        throw new \Exception("Invalid unicode escape");
+                        throw new JException("S0301", $this->position, $esc);
                     }
+                } elseif ($c === $quoteType) {
+                    $this->position++; // consume closing quote
+                    return $this->create("string", $qstr);
                 } else {
-                    throw new \Exception("Illegal escape sequence: \\$esc");
-                }
-            } elseif ($ch === $quoteType) {
-                $this->position++;
-                return $this->create("string", $qstr);
-            } else {
-                $qstr .= $ch;
-            }
-            $this->position++;
-        }
-        throw new \Exception("Unterminated string");
-    }
-
-    public function next(bool $prefix = true): ?JsonataToken
-    {
-        if ($this->position >= $this->length)
-            return null;
-
-        $this->skipWhitespace();
-        if ($this->position >= $this->length)
-            return null;
-
-        $ch = $this->path[$this->position];
-
-        // comments
-        if ($ch === '/' && $this->position + 1 < $this->length && $this->path[$this->position + 1] === '*') {
-            $this->position += 2;
-            while ($this->position < $this->length - 1) {
-                if ($this->path[$this->position] === '*' && $this->path[$this->position + 1] === '/') {
-                    $this->position += 2;
-                    return $this->next($prefix);
+                    $qstr .= $c;
                 }
                 $this->position++;
             }
-            throw new \Exception("Unterminated comment");
+            throw new JException("S0101", $this->position);
         }
 
-        // regex
-        if (!$prefix && $ch === '/') {
-            $this->position++;
-            return $this->scanRegex();
-        }
-
-        // double char operators
-        foreach (["..", ":=", "!=", ">=", "<=", "**", "~>", "?:", "??"] as $op) {
-            if (substr($this->path, $this->position, strlen($op)) === $op) {
-                $this->position += strlen($op);
-                return $this->create("operator", $op);
+        // numbers
+        $rest = substr($this->path, $this->position);
+        if (preg_match('/^-?(0|([1-9][0-9]*))(\.[0-9]+)?([Ee][-+]?[0-9]+)?/', $rest, $m) === 1) {
+            $lexeme = $m[0];
+            $num = (float) $lexeme;
+            if (!is_nan($num) && is_finite($num)) {
+                $this->position += strlen($lexeme);
+                return $this->create("number", Utils::convertNumber($num));
             }
+            throw new JException("S0102", $this->position);
         }
 
-        // single char operator
-        if (self::operators[$ch] ?? null) {
-            $this->position++;
-            return $this->create("operator", $ch);
-        }
-
-        // string
-        if ($ch === '"' || $ch === "'") {
-            return $this->readString($ch);
-        }
-
-        // number
-        if (preg_match('/^-?(0|[1-9][0-9]*)(\.[0-9]+)?([Ee][-+]?[0-9]+)?/', substr($this->path, $this->position), $m)) {
-            $this->position += strlen($m[0]);
-            return $this->create("number", $m[0]);
-        }
-
-        // quoted names
-        if ($ch === '`') {
+        // quoted names with backticks
+        if ($currentChar === '`') {
             $this->position++;
             $end = strpos($this->path, '`', $this->position);
             if ($end !== false) {
@@ -207,33 +296,48 @@ class Tokenizer
                 $this->position = $end + 1;
                 return $this->create("name", $name);
             }
-            throw new \Exception("Unterminated backtick name");
+            $this->position = $this->length;
+            throw new JException("S0105", $this->position);
         }
 
-        // names and variables
+        // names/variables/keywords
         $i = $this->position;
-        while ($i < $this->length && preg_match('/[A-Za-z0-9_\$]/', $this->path[$i])) {
-            $i++;
+        while (true) {
+            $ch = ($i < $this->length) ? $this->path[$i] : "\0";
+            // stop at end, whitespace, or any single-char operator
+            if ($i === $this->length || str_contains(" \t\n\r", $ch) || array_key_exists($ch, self::operators)) {
+                if ($this->path[$this->position] === '$') {
+                    // variable
+                    $name = substr($this->path, $this->position + 1, $i - ($this->position + 1));
+                    $this->position = $i;
+                    return $this->create("variable", $name);
+                } else {
+                    $name = substr($this->path, $this->position, $i - $this->position);
+                    $this->position = $i;
+                    switch ($name) {
+                        case "or":
+                        case "in":
+                        case "and":
+                            return $this->create("operator", $name);
+                        case "true":
+                            return $this->create("value", true);
+                        case "false":
+                            return $this->create("value", false);
+                        case "null":
+                            return $this->create("value", null);
+                        default:
+                            if ($this->position === $this->length && $name === "") {
+                                return null; // trailing whitespace
+                            }
+                            return $this->create("name", $name);
+                    }
+                }
+            } else {
+                $i++;
+            }
         }
-        $name = substr($this->path, $this->position, $i - $this->position);
-        $this->position = $i;
-
-        if ($name === "") {
-            return null;
-        }
-
-        if ($name[0] === '$') {
-            return $this->create("variable", substr($name, 1));
-        }
-
-        return match ($name) {
-            "or", "in", "and" => $this->create("operator", $name),
-            "true" => $this->create("value", true),
-            "false" => $this->create("value", false),
-            "null" => $this->create("value", null),
-            default => $this->create("name", $name),
-        };
     }
+
 
     public function tokens()
     {

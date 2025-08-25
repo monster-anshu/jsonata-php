@@ -5,7 +5,7 @@ namespace Monster\JsonataPhp;
 
 class JsonataToken
 {
-    public function __construct(public string $type, public string $value, public int $position)
+    public function __construct(public string $type, public mixed $value, public int $position)
     {
     }
 }

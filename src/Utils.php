@@ -285,7 +285,9 @@ class Utils
 
     public static function RangeList(mixed $a, mixed $b): array
     {
-        return new RangeList($a, $b);
+        //TODO: check this
+        // return new RangeList($a, $b);
+        return [];
     }
 }
 

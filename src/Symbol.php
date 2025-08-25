@@ -114,9 +114,7 @@ class Symbol implements \JsonSerializable, \Stringable
                 $cl->$key = $value->clone();
             } elseif (is_array($value)) {
                 // Recursively clone arrays containing Symbol objects
-                $cl->$key = array_map(function ($item) {
-                    return $item instanceof Symbol ? $item->clone() : $item;
-                }, $value);
+                $cl->$key = array_map(fn($item) => $item instanceof Symbol ? $item->clone() : $item, $value);
             } else {
                 $cl->$key = $value;
             }
@@ -136,13 +134,13 @@ class Symbol implements \JsonSerializable, \Stringable
     public function jsonSerialize(): array
     {
         $vars = get_object_vars($this);
-        $skip_keys = ['outerInstance' , '_jsonata_lambda', 'construct_args'];
+        $skip_keys = ['outerInstance' , '_jsonata_lambda', 'construct_args', 'id'];
         $result = [];
         foreach ($vars as $key => $value) {
             if (in_array($key, $skip_keys, true)) {
                 continue;
             }
-            if ($value !== null && $value !== false) {
+            if (!!$value) {
                 $result[$key] = $value;
             }
         }
