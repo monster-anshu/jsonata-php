@@ -1,6 +1,7 @@
 {
     "name": "monster-anshu/jsonata-php",
     "description": "A PHP port of JSONata - a lightweight query and transformation language for JSON.",
+    "version": "0.0.1",
     "type": "library",
     "license": "MIT",
     "autoload": {
