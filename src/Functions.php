@@ -18,6 +18,7 @@ final class Functions
         if ($args === null) {
             return 0;
         }
+
         return count($args);
     }
 
@@ -28,9 +29,10 @@ final class Functions
      */
     public static function max(?array $args)
     {
-        if ($args === null || count($args) === 0) {
+        if ($args === null || $args === []) {
             return null;
         }
+
         return max(array_map(fn ($n) => (float) $n, $args));
     }
 
@@ -41,9 +43,10 @@ final class Functions
      */
     public static function min(?array $args)
     {
-        if ($args === null || count($args) === 0) {
+        if ($args === null || $args === []) {
             return null;
         }
+
         return min(array_map(fn ($n) => (float) $n, $args));
     }
 
@@ -54,22 +57,23 @@ final class Functions
      */
     public static function average(?array $args): ?float
     {
-        if ($args === null || count($args) === 0) {
+        if ($args === null || $args === []) {
             return null;
         }
+
         return array_sum(array_map(fn ($n) => (float) $n, $args)) / count($args);
     }
 
     /**
      * Sum function
      * @param array|null $args - Arguments
-     * @return float|null
      */
     public static function sum(?array $args): ?float
     {
         if ($args === null) {
             return null;
         }
+
         return array_sum(array_map(fn ($n) => (float) $n, $args));
     }
 
@@ -77,7 +81,6 @@ final class Functions
      * Stringify arguments
      * @param mixed $arg - Arguments
      * @param bool|null $prettify - Pretty print the result
-     * @return string|null
      */
     public static function string($arg, ?bool $prettify = false): ?string
     {
@@ -118,9 +121,11 @@ final class Functions
                 $val = self::stringify($v, $prettify, $indent . "  ");
                 $parts[] = json_encode((string) $k) . ":" . ($prettify ? " " : "") . $val;
             }
+
             if ($prettify) {
                 return "{\n" . $indent . "  " . implode(",\n" . $indent . "  ", $parts) . "\n" . $indent . "}";
             }
+
             return "{" . implode(",", $parts) . "}";
         }
 
@@ -130,9 +135,11 @@ final class Functions
             foreach ($arg as $v) {
                 $parts[] = self::stringify($v, $prettify, $indent . "  ");
             }
+
             if ($prettify) {
                 return "[\n" . $indent . "  " . implode(",\n" . $indent . "  ", $parts) . "\n" . $indent . "]";
             }
+
             return "[" . implode(",", $parts) . "]";
         }
 
@@ -144,7 +151,6 @@ final class Functions
     /**
      * Validate input data types
      * @param mixed $arg
-     * @return void
      */
     public static function validateInput($arg): void
     {
@@ -162,14 +168,18 @@ final class Functions
                 self::validateInput($k);
                 self::validateInput($v);
             }
+
             return;
         }
+
         if (Utils::isArray($arg)) {
             foreach ($arg as $v) {
                 self::validateInput($v);
             }
+
             return;
         }
+
         throw new ValueError(
             "Only JSON types (values, Map, List) are allowed as input. Unsupported type: " . gettype($arg)
         );
@@ -198,6 +208,7 @@ final class Functions
             if ($length <= 0) {
                 return "";
             }
+
             return self::substr($str, $start, $length);
         }
 
@@ -237,6 +248,7 @@ final class Functions
         if ($str === null) {
             return null;
         }
+
         if ($chars === null) {
             return $str;
         }
@@ -253,6 +265,7 @@ final class Functions
         if ($str === null) {
             return null;
         }
+
         if ($chars === null) {
             return $str;
         }
@@ -293,6 +306,7 @@ final class Functions
         if ($str === null) {
             return null;
         }
+
         if ($str === "") {
             return "";
         }
@@ -327,6 +341,7 @@ final class Functions
         if ($str === null) {
             return null;
         }
+
         if ($padStr === null || $padStr === "") {
             $padStr = " ";
         }
@@ -346,6 +361,7 @@ final class Functions
         if ($str === null) {
             return null;
         }
+
         if ($padStr === null || $padStr === "") {
             $padStr = " ";
         }
@@ -362,25 +378,25 @@ final class Functions
 
     /**
      * Regex match (like evaluateMatcher)
-     * @param string $pattern
-     * @param string $str
-     * @return array
      */
     public static function evaluateMatcher(string $pattern, string $str): array
     {
         $matches = [];
         preg_match_all($pattern, $str, $allMatches, PREG_OFFSET_CAPTURE);
+        // group 0 = whole match, rest are capture groups
+        $counter = count($allMatches[0]);
 
         // group 0 = whole match, rest are capture groups
-        for ($i = 0; $i < count($allMatches[0]); $i++) {
+        for ($i = 0; $i < $counter; ++$i) {
             $matchData = [
                 "match" => $allMatches[0][$i][0],
                 "index" => $allMatches[0][$i][1],
                 "groups" => []
             ];
-            for ($g = 1; $g < count($allMatches); $g++) {
+            for ($g = 1; $g < count($allMatches); ++$g) {
                 $matchData["groups"][] = $allMatches[$g][$i][0] ?? null;
             }
+
             $matches[] = $matchData;
         }
 
@@ -389,9 +405,7 @@ final class Functions
 
     /**
      * Tests if the string contains the token
-     * @param string|null $str
      * @param string|_Pattern $token
-     * @return bool|null
      */
     public static function contains(?string $str, $token): ?bool
     {
@@ -460,9 +474,7 @@ final class Functions
 
     /**
      * Split a string by a pattern or string
-     * @param string|null $str
      * @param string $pattern
-     * @param int|null $limit
      * @return array<string>|null
      */
     public static function split(?string $str, $pattern, ?int $limit = null): ?array
@@ -500,6 +512,7 @@ final class Functions
             if ($pattern === "") {
                 throw new \InvalidArgumentException("Second argument of replace cannot be an empty string");
             }
+
             if ($limit === null) {
                 return str_replace($pattern, $replacement, $str);
             } else {
@@ -513,16 +526,13 @@ final class Functions
 
     /**
      * Match a string with regex returning array of match details
-     * @param string|null $str
-     * @param string $pattern
-     * @param int|null $limit
-     * @return array|null
      */
     public static function match(?string $str, string $pattern, ?int $limit = null): ?array
     {
         if ($str === null) {
             return null;
         }
+
         if ($limit !== null && $limit < 0) {
             throw new \InvalidArgumentException("Limit must be non-negative");
         }
@@ -533,11 +543,12 @@ final class Functions
         $count = count($matches[0]);
         $max = $limit ?? $count;
 
-        for ($i = 0; $i < $count && $i < $max; $i++) {
+        for ($i = 0; $i < $count && $i < $max; ++$i) {
             $groups = [];
-            foreach ($matches as $group) {
-                $groups[] = $group[$i][0];
+            foreach ($matches as $match) {
+                $groups[] = $match[$i][0];
             }
+
             $result[] = [
                 'match' => $matches[0][$i][0],
                 'index' => $matches[0][$i][1],
@@ -556,6 +567,7 @@ final class Functions
         if ($strs === null) {
             return null;
         }
+
         return implode($separator, $strs);
     }
 
@@ -580,6 +592,7 @@ final class Functions
         if ($arg === null) {
             return null;
         }
+
         if ($arg === Utils::$none) {
             throw new JException("T0410", -1);
         }
@@ -587,18 +600,23 @@ final class Functions
         if (is_numeric($arg)) {
             return $arg + 0;
         }
+
         if (is_string($arg)) {
             if (str_starts_with($arg, "0x")) {
                 return hexdec(substr($arg, 2));
             }
+
             if (str_starts_with($arg, "0B")) {
                 return bindec(substr($arg, 2));
             }
+
             if (str_starts_with($arg, "0O")) {
                 return octdec(substr($arg, 2));
             }
+
             return (float) $arg;
         }
+
         if (is_bool($arg)) {
             return $arg ? 1 : 0;
         }
@@ -631,9 +649,11 @@ final class Functions
         if ($arg === null) {
             return null;
         }
+
         if ($arg < 0) {
             throw new JException("D3060", 1, $arg);
         }
+
         return sqrt($arg);
     }
 
@@ -642,10 +662,12 @@ final class Functions
         if ($arg === null) {
             return null;
         }
+
         $result = $arg ** $exp;
         if (!is_finite($result)) {
             throw new JException("D3061", 1, $arg, $exp);
         }
+
         return $result;
     }
 
@@ -664,20 +686,24 @@ final class Functions
             if (count($arg) === 1) {
                 return self::toBoolean($arg[0]);
             }
-            return count(array_filter((array) $arg, fn ($e) => (bool) $e)) > 0;
+
+            return array_filter((array) $arg, fn ($e) => (bool) $e) !== [];
         }
 
         if (is_string($arg)) {
             return strlen($arg) > 0;
         }
+
         if (is_numeric($arg)) {
             return $arg != 0;
         }
+
         if (is_bool($arg)) {
             return $arg;
         }
+
         if (is_object($arg) || is_array($arg)) {
-            return !empty((array) $arg);
+            return (array) $arg !== [];
         }
 
         return false;
@@ -711,9 +737,11 @@ final class Functions
             if (substr_count($p, $percent_sign) > 1) {
                 throw new JException('D3082', -1);
             }
+
             if (substr_count($p, $per_mille_sign) > 1) {
                 throw new JException('D3083', -1);
             }
+
             if (substr_count($p, $percent_sign) + substr_count($p, $per_mille_sign) > 1) {
                 throw new JException('D3084');
             }
@@ -722,7 +750,7 @@ final class Functions
         $zero_digit = $decimal_format['zero-digit'] ?? '0';
         $optional_digit = $decimal_format['digit'] ?? '#';
         $digits_family = '';
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 10; ++$i) {
             $digits_family .= chr(ord($zero_digit) + $i);
         }
 
@@ -734,31 +762,31 @@ final class Functions
 
         $grouping_separator = $decimal_format['grouping-separator'] ?? ',';
         $adjacent_pattern = '/[' . preg_quote($grouping_separator, '/') . preg_quote($decimal_separator, '/') . ']{2}/';
-        foreach ($sub_pictures as $p) {
-            if (preg_match($adjacent_pattern, $p)) {
+        foreach ($sub_pictures as $sub_picture) {
+            if (preg_match($adjacent_pattern, $sub_picture)) {
                 throw new JException('D3087', -1);
             }
         }
 
-        foreach ($sub_pictures as $s) {
-            $parts = explode($decimal_separator, $s);
-            foreach ($parts as $x) {
-                if (str_ends_with($x, $grouping_separator)) {
+        foreach ($sub_pictures as $sub_picture) {
+            $parts = explode($decimal_separator, $sub_picture);
+            foreach ($parts as $part) {
+                if (str_ends_with($part, $grouping_separator)) {
                     throw new JException('D3088', -1);
                 }
             }
         }
 
         $active_characters = $digits_family . $decimal_separator . $grouping_separator . $pattern_separator . $optional_digit;
-        $exponent_separator = $decimal_format['exponent-separator'] ?? 'e';
-        $exponent_pattern = '/(?<=[ ' . preg_quote($active_characters, '/') . '])' . preg_quote($exponent_separator, '/') . '[ ' . preg_quote($active_characters, '/') . ']/';
 
         if ($value === null) {
             return null;
         }
+
         if (is_nan($value)) {
             return $decimal_format['NaN'] ?? 'NaN';
         }
+
         if (!is_numeric($value)) {
             $value = (float) $value;
         }
@@ -779,7 +807,7 @@ final class Functions
         // Separate prefix from digits
         $found = false;
         $len = strlen($subpic);
-        for ($k = 0; $k < $len; $k++) {
+        for ($k = 0; $k < $len; ++$k) {
             $ch = $subpic[$k];
             if (str_contains($active_characters, $ch)) {
                 $prefix .= substr($subpic, 0, $k);
@@ -788,6 +816,7 @@ final class Functions
                 break;
             }
         }
+
         if (!$found) {
             $prefix .= $subpic;
             $subpic = '';
@@ -808,7 +837,7 @@ final class Functions
             // Find suffix dynamically
             $suffix = '';
             $len = strlen($subpic);
-            for ($k = $len - 1; $k >= 0; $k--) {
+            for ($k = $len - 1; $k >= 0; --$k) {
                 $ch = $subpic[$k];
                 if (str_contains($active_characters, $ch)) {
                     $suffix = substr($subpic, $k + 1);
@@ -838,6 +867,7 @@ final class Functions
             if (!isset($chunks[1])) {
                 $chunks[1] = $zero_digit;
             }
+
             $decimal_part = Functions::format_digits($chunks[1], $fmt_tokens[1], $digits_family, $optional_digit, $grouping_separator);
             $result .= $decimal_separator . $decimal_part;
         }
@@ -936,6 +966,7 @@ final class Functions
         if ($arg === null) {
             return null;
         }
+
         return !self::toBoolean($arg);
     }
 
@@ -958,9 +989,11 @@ final class Functions
         if ($length >= 2) {
             $func_args[] = $arg2;
         }
+
         if ($length >= 3) {
             $func_args[] = $arg3;
         }
+
         return $func_args;
     }
 
@@ -987,6 +1020,7 @@ final class Functions
         if ($arr === null) {
             return null;
         }
+
         $result = [];
         foreach ($arr as $i => $arg) {
             $funcArgs = self::hofFuncArgs($func, $arg, $i, $arr);
@@ -995,6 +1029,7 @@ final class Functions
                 $result[] = $res;
             }
         }
+
         return $result;
     }
 
@@ -1006,6 +1041,7 @@ final class Functions
         if ($arr === null) {
             return null;
         }
+
         $result = [];
         foreach ($arr as $i => $entry) {
             $funcArgs = self::hofFuncArgs($func, $entry, $i, $arr);
@@ -1014,6 +1050,7 @@ final class Functions
                 $result[] = $entry;
             }
         }
+
         return $result;
     }
 
@@ -1026,6 +1063,7 @@ final class Functions
         if ($arr === null) {
             return null;
         }
+
         $found = false;
         $result = null;
         foreach ($arr as $i => $entry) {
@@ -1035,6 +1073,7 @@ final class Functions
                 $res = self::funcApply($func, $funcArgs);
                 $positive = self::toBoolean($res);
             }
+
             if ($positive) {
                 if (!$found) {
                     $result = $entry;
@@ -1044,9 +1083,11 @@ final class Functions
                 }
             }
         }
+
         if (!$found) {
             throw new JException("D3139", -1);
         }
+
         return $result;
     }
 
@@ -1058,19 +1099,21 @@ final class Functions
         $result = [];
         $length = PHP_INT_MAX;
         $nargs = count($args);
-        foreach ($args as $arr) {
-            if ($arr === null) {
+        foreach ($args as $arg) {
+            if ($arg === null) {
                 $length = 0;
                 break;
             }
-            $length = min($length, count($arr));
+
+            $length = min($length, count($arg));
         }
 
-        for ($i = 0; $i < $length; $i++) {
+        for ($i = 0; $i < $length; ++$i) {
             $tuple = [];
-            for ($k = 0; $k < $nargs; $k++) {
+            for ($k = 0; $k < $nargs; ++$k) {
                 $tuple[] = $args[$k][$i];
             }
+
             $result[] = $tuple;
         }
 
@@ -1081,8 +1124,6 @@ final class Functions
     /**
      * @param array<mixed>|null $sequence
      * @param callable|mixed $func
-     * @param mixed $init
-     * @return mixed
      * @throws \Throwable
      */
     public static function foldLeft(?array $sequence, mixed $func, mixed $init): mixed
@@ -1090,6 +1131,7 @@ final class Functions
         if ($sequence === null) {
             return null;
         }
+
         $result = null;
 
         $arity = self::getFunctionArity($func);
@@ -1097,7 +1139,7 @@ final class Functions
             throw new JException("D3050", 1);
         }
 
-        if ($init === null && count($sequence) > 0) {
+        if ($init === null && $sequence !== []) {
             $result = $sequence[0];
             $index = 1;
         } else {
@@ -1110,18 +1152,19 @@ final class Functions
             if ($arity >= 3) {
                 $args[] = $index;
             }
+
             if ($arity >= 4) {
                 $args[] = $sequence;
             }
+
             $result = self::funcApply($func, $args);
-            $index++;
+            ++$index;
         }
 
         return $result;
     }
 
     /**
-     * @param mixed $arg
      * @return array<mixed>
      */
     public static function keys(mixed $arg): array
@@ -1133,10 +1176,12 @@ final class Functions
             foreach ($arg as $el) {
                 $keys = array_merge($keys, self::keys($el));
             }
+
             $result = array_values(array_unique(array_merge($result->toArray(), $keys)));
         } elseif ($arg instanceof \ArrayObject || is_object($arg)) {
             $result = array_merge($result->toArray(), array_keys((array) $arg));
         }
+
         return $result;
     }
 
@@ -1161,6 +1206,7 @@ final class Functions
         } else {
             return $arg;
         }
+
         return $result;
     }
 
@@ -1180,6 +1226,7 @@ final class Functions
                 $result[$key] = $val;
             }
         }
+
         return $result;
     }
 
@@ -1192,16 +1239,17 @@ final class Functions
         if ($arr === null) {
             return null;
         }
+
         if (count($arr) <= 1) {
             return $arr;
         }
+
         return array_reverse($arr);
     }
 
     /**
      * @param array<string,mixed>|null $obj
      * @param callable|mixed $func
-     * @return JList|null
      * @throws \Throwable
      */
     public static function each(?array $obj, mixed $func): ?JList
@@ -1210,15 +1258,16 @@ final class Functions
             return null;
         }
 
-        $result = Utils::createSequence();
+        $jList = Utils::createSequence();
         foreach ($obj as $key => $val) {
             $func_args = self::hofFuncArgs($func, $val, $key, $obj);
             $res = self::funcApply($func, $func_args);
             if ($res !== null) {
-                $result[] = $res;
+                $jList[] = $res;
             }
         }
-        return $result;
+
+        return $jList;
     }
 
     /**
@@ -1232,7 +1281,7 @@ final class Functions
     /**
      * @throws \Throwable
      */
-    public static function assertFn(bool $condition, ?string $message): void
+    public static function assertFn(bool $condition): void
     {
         if (!$condition) {
             throw new JException("D3141", -1, "\$assert() statement failed");
@@ -1244,24 +1293,31 @@ final class Functions
         if ($value === null) {
             return null;
         }
+
         if ($value === Utils::$none) {
             return "null";
         }
+
         if (is_int($value) || is_float($value)) {
             return "number";
         }
+
         if (is_string($value)) {
             return "string";
         }
+
         if (is_bool($value)) {
             return "boolean";
         }
+
         if (Utils::isArray($value)) {
             return "array";
         }
+
         if (Utils::isFunction($value) || self::isLambda($value)) {
             return "function";
         }
+
         return "object";
     }
 
@@ -1275,6 +1331,7 @@ final class Functions
         if ($arr === null) {
             return null;
         }
+
         if (count($arr) <= 1) {
             return $arr;
         }
@@ -1290,6 +1347,7 @@ final class Functions
         } else {
             sort($result);
         }
+
         return $result;
     }
 
@@ -1302,6 +1360,7 @@ final class Functions
         if ($arr === null) {
             return null;
         }
+
         if (count($arr) <= 1) {
             return $arr;
         }
@@ -1320,15 +1379,15 @@ final class Functions
         if ($arr === null) {
             return null;
         }
+
         if (!Utils::isArray($arr) || count($arr) <= 1) {
             return $arr;
         }
 
         $results = $arr instanceof JList ? Utils::createSequence() : [];
         $set = array_unique($arr, SORT_REGULAR);
-        $results = array_merge($results, $set);
 
-        return $results;
+        return array_merge($results, $set);
     }
 
     /**
@@ -1352,7 +1411,7 @@ final class Functions
             }
         }
 
-        if (empty($result)) {
+        if ($result === []) {
             return null;
         }
 
@@ -1364,13 +1423,13 @@ final class Functions
      * Append second argument to first
      * @param array|object|null $arg1
      * @param array|object|null $arg2
-     * @return mixed
      */
     public static function append(mixed $arg1, mixed $arg2): mixed
     {
         if ($arg1 === null) {
             return $arg2;
         }
+
         if ($arg2 === null) {
             return $arg1;
         }
@@ -1378,6 +1437,7 @@ final class Functions
         if (!Utils::isArray($arg1)) {
             $arg1 = Utils::createSequence($arg1);
         }
+
         if (!Utils::isArray($arg2)) {
             $arg2 = new JList([$arg2]);
         }
@@ -1390,6 +1450,7 @@ final class Functions
         foreach ($arg2 as $item) {
             $arg1[] = $item;
         }
+
         return $arg1;
     }
 
@@ -1400,9 +1461,6 @@ final class Functions
 
     /**
      * Return value from an object for a given key
-     * @param mixed $input
-     * @param string $key
-     * @return mixed
      */
     public static function lookup(mixed $input, string $key): mixed
     {
@@ -1426,6 +1484,7 @@ final class Functions
                 $result = Utils::$none;
             }
         }
+
         return $result;
     }
 
@@ -1437,11 +1496,12 @@ final class Functions
     public static function getFunction(string $class, string $name): ?\ReflectionMethod
     {
         $methods = (new \ReflectionClass(Functions::class))->getMethods(\ReflectionMethod::IS_STATIC | \ReflectionMethod::IS_PUBLIC);
-        foreach ($methods as $m) {
-            if ($m->getName() === $name) {
-                return $m;
+        foreach ($methods as $method) {
+            if ($method->getName() === $name) {
+                return $method;
             }
         }
+
         return null;
     }
 
@@ -1450,13 +1510,13 @@ final class Functions
         return self::callMethod($instance, self::getFunction($class, $name), $args);
     }
 
-    public static function callMethod(mixed $instance, ?\ReflectionMethod $m, array $args): mixed
+    public static function callMethod(mixed $instance, ?\ReflectionMethod $reflectionMethod, array $args): mixed
     {
-        if ($m === null) {
+        if (!$reflectionMethod instanceof \ReflectionMethod) {
             throw new \Exception("Method not found");
         }
 
-        $params = $m->getParameters();
+        $params = $reflectionMethod->getParameters();
         $nargs = count($params);
 
         $callArgs = $args;
@@ -1464,33 +1524,24 @@ final class Functions
             $callArgs[] = null;
         }
 
-        if ($nargs > 0 && $params[0]->getType() && $params[0]->getType()->getName() === 'array' && !Utils::isArray($callArgs[0])) {
-            if ($callArgs[0] !== null) {
-                $callArgs[0] = [$callArgs[0]];
-            }
+        if ($nargs > 0 && $params[0]->getType() && $params[0]->getType()->getName() === 'array' && !Utils::isArray($callArgs[0]) && $callArgs[0] !== null) {
+            $callArgs[0] = [$callArgs[0]];
         }
 
         if ($nargs === 1 && $params[0]->getType() && $params[0]->getType()->getName() === JList::class) {
-            $allArgs = new JList($args);
-            $callArgs = [$allArgs];
+            $jList = new JList($args);
+            $callArgs = [$jList];
+        }
+        $res = $reflectionMethod->invokeArgs(null, $callArgs);
+        if (is_numeric($res)) {
+            $res = Utils::convertNumber($res);
         }
 
-        try {
-            $res = $m->invokeArgs(null, $callArgs);
-            if (is_numeric($res)) {
-                $res = Utils::convertNumber($res);
-            }
-            return $res;
-        } catch (\Throwable $e) {
-            throw $e;
-        }
+        return $res;
     }
 
     /**
      * Converts an ISO 8601 timestamp to milliseconds since the epoch
-     * @param string|null $timestamp
-     * @param string|null $picture
-     * @return int|null
      */
     public static function dateTimeToMillis(?string $timestamp, ?string $picture): ?int
     {
@@ -1503,13 +1554,13 @@ final class Functions
                 $dt = \DateTime::createFromFormat('Y', $timestamp, new \DateTimeZone('UTC'));
                 return $dt?->getTimestamp() * 1000;
             }
+
             try {
                 $len = strlen($timestamp);
-                if ($len > 5 && ($timestamp[$len - 5] === '+' || $timestamp[$len - 5] === '-')) {
-                    if (ctype_digit(substr($timestamp, -4))) {
-                        $timestamp = substr($timestamp, 0, $len - 2) . ':' . substr($timestamp, $len - 2);
-                    }
+                if ($len > 5 && ($timestamp[$len - 5] === '+' || $timestamp[$len - 5] === '-') && ctype_digit(substr($timestamp, -4))) {
+                    $timestamp = substr($timestamp, 0, $len - 2) . ':' . substr($timestamp, $len - 2);
                 }
+
                 return (new \DateTimeImmutable($timestamp))->getTimestamp() * 1000;
             } catch (\Throwable) {
                 try {
@@ -1529,6 +1580,7 @@ final class Functions
         if ($cs === null || $cs === '') {
             return false;
         }
+
         return ctype_digit($cs);
     }
 
@@ -1542,6 +1594,7 @@ final class Functions
         if ($value === null) {
             return null;
         }
+
         return DateTimeUtils::formatInteger((int) $value, $picture);
     }
 
@@ -1555,27 +1608,35 @@ final class Functions
             if ($picture === "#") {
                 throw new \Exception("Formatting or parsing an integer with '#' not supported");
             }
+
             if (str_ends_with($picture, ";o")) {
                 $picture = substr($picture, 0, -2);
             }
+
             if ($picture === "a") {
                 return DateTimeUtils::lettersToDecimal($value, 'a');
             }
+
             if ($picture === "A") {
                 return DateTimeUtils::lettersToDecimal($value, 'A');
             }
+
             if ($picture === "i") {
                 return DateTimeUtils::romanToDecimal(strtoupper($value));
             }
+
             if ($picture === "I") {
                 return DateTimeUtils::romanToDecimal($value);
             }
+
             if ($picture === "w") {
                 return DateTimeUtils::wordsToLong($value);
             }
+
             if (in_array($picture, ["W", "wW", "Ww"], true)) {
                 return DateTimeUtils::wordsToLong(strtolower($value));
             }
+
             if (str_contains($picture, ":")) {
                 $value = str_replace(":", ",", $value);
                 $picture = str_replace(":", ",", $picture);
@@ -1583,8 +1644,8 @@ final class Functions
         }
 
         try {
-            $formatter = new \NumberFormatter("en_US", \NumberFormatter::DECIMAL);
-            return $formatter->parse($value);
+            $numberFormatter = new \NumberFormatter("en_US", \NumberFormatter::DECIMAL);
+            return $numberFormatter->parse($value);
         } catch (\Throwable) {
             return null;
         }
@@ -1595,8 +1656,7 @@ final class Functions
         if ($arg === null) {
             return null;
         }
-        $res = json_decode((string) self::string($arg, false), true);
-        return $res;
+        return json_decode((string) self::string($arg, false), true);
     }
 
 }

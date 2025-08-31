@@ -7,9 +7,10 @@ namespace Monster\JsonataPhp;
 class _Frame
 {
     private array $bindings = [];
+
     public bool $isParallelCall = false;
 
-    public function __construct(private readonly ?_Frame $parent = null)
+    public function __construct(private readonly ?_Frame $frame = null)
     {
     }
 
@@ -18,12 +19,12 @@ class _Frame
         $this->bindings[$name] = $val;
     }
 
-    public function bindFunction(string $name, _JFunction $function): void
+    public function bindFunction(string $name, _JFunction $jFunction): void
     {
 
-        $this->bind($name, $function);
-        if ($function->signature !== null) {
-            $function->signature->setFunctionName($name);
+        $this->bind($name, $jFunction);
+        if ($jFunction->signature instanceof \Monster\JsonataPhp\Signature) {
+            $jFunction->signature->setFunctionName($name);
         }
     }
 
@@ -39,9 +40,10 @@ class _Frame
             return $this->bindings[$name];
         }
 
-        if ($this->parent !== null) {
-            return $this->parent->lookup($name);
+        if ($this->frame !== null) {
+            return $this->frame->lookup($name);
         }
+
         return null;
     }
 
@@ -56,13 +58,13 @@ class _Frame
         new _Timebox($this, $timeout, $maxRecursionDepth);
     }
 
-    public function setEvaluateEntryCallback(_EntryCallback $cb): void
+    public function setEvaluateEntryCallback(_EntryCallback $entryCallback): void
     {
-        $this->bind("__evaluate_entry", $cb);
+        $this->bind("__evaluate_entry", $entryCallback);
     }
 
-    public function setEvaluateExitCallback(_ExitCallback $cb): void
+    public function setEvaluateExitCallback(_ExitCallback $exitCallback): void
     {
-        $this->bind("__evaluate_exit", $cb);
+        $this->bind("__evaluate_exit", $exitCallback);
     }
 }

@@ -6,9 +6,9 @@ namespace Monster\JsonataPhp;
 
 class _InfixFieldWildcard extends _Infix
 {
-    public function __construct(Parser $outerInstance)
+    public function __construct(Parser $parser)
     {
-        parent::__construct($outerInstance, "*");
+        parent::__construct($parser, "*");
     }
 
     public function nud(): Symbol

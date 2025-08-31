@@ -6,9 +6,9 @@ namespace Monster\JsonataPhp;
 
 class _InfixAnd extends _Infix
 {
-    public function __construct(Parser $outerInstance)
+    public function __construct(Parser $parser)
     {
-        parent::__construct($outerInstance, "and");
+        parent::__construct($parser, "and");
         $this->construct_args = func_get_args();
     }
 

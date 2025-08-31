@@ -8,7 +8,12 @@ return RectorConfig::configure()
     ->withPaths([
         __DIR__ . '/src'
     ])
-    ->withPhpSets(php81:true)
-    ->withTypeCoverageLevel(0)
-    ->withDeadCodeLevel(0)
-    ->withCodeQualityLevel(0);
+    ->withPreparedSets(
+        deadCode: true,
+        codeQuality: true,
+        codingStyle: true,
+        naming: true,
+        privatization: true,
+        typeDeclarations: false,
+        rectorPreset: true,
+    );

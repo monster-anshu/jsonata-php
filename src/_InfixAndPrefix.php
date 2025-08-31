@@ -8,9 +8,9 @@ class _InfixAndPrefix extends _Infix
 {
     public _Prefix $prefix;
 
-    public function __construct(Parser $outerInstance, string $id, int $bp = 0)
+    public function __construct(Parser $parser, string $id, int $bp = 0)
     {
-        parent::__construct($outerInstance, $id, $bp);
+        parent::__construct($parser, $id, $bp);
         $this->prefix = new _Prefix($this->outerInstance, $id);
         $this->construct_args = func_get_args();
     }

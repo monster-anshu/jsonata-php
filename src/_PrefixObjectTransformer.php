@@ -6,9 +6,9 @@ namespace Monster\JsonataPhp;
 
 class _PrefixObjectTransformer extends _Prefix
 {
-    public function __construct(Parser $outerInstance)
+    public function __construct(Parser $parser)
     {
-        parent::__construct($outerInstance, "|");
+        parent::__construct($parser, "|");
         $this->construct_args = func_get_args();
     }
 
@@ -22,6 +22,7 @@ class _PrefixObjectTransformer extends _Prefix
             $this->outerInstance->advance(",");
             $this->delete = $this->outerInstance->expression(0);
         }
+
         $this->outerInstance->advance("|");
         return $this;
     }

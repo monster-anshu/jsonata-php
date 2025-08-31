@@ -6,13 +6,13 @@ namespace Monster\JsonataPhp;
 
 class _InfixRError extends _Infix
 {
-    public function __construct(Parser $outerInstance)
+    public function __construct(Parser $parser)
     {
-        parent::__construct($outerInstance, "(error)", 10);
+        parent::__construct($parser, "(error)", 10);
         $this->construct_args = func_get_args();
     }
 
-    public function led(Symbol $left): Symbol
+    public function led(Symbol $symbol): Symbol
     {
         throw new \Exception("TODO");
     }

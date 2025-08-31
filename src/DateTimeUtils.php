@@ -307,6 +307,7 @@ class DateTimeUtils
             if ($mag > count($magnitudes)) {
                 $mag = count($magnitudes);
             }
+
             $factor = 10 ** ($mag * 3);
             $mant = (int) floor($num / $factor);
             $remainder = $num - $mant * $factor;
@@ -317,6 +318,7 @@ class DateTimeUtils
                 $words .= "th";
             }
         }
+
         return $words;
     }
 
@@ -333,29 +335,33 @@ class DateTimeUtils
             if ($value === null) {
                 continue;
             }
+
             if ($value < 100) {
                 $top = array_pop($segs);
                 if ($top >= 1000) {
                     $segs[] = $top;
                     $top = 0;
                 }
+
                 $segs[] = $top + $value;
             } else {
                 $segs[] = array_pop($segs) * $value;
             }
         }
+
         return array_sum($segs);
     }
 
     private static function decimalToRoman(int $value): string
     {
         $roman = '';
-        foreach (self::$romanNumerals as $numeral) {
-            while ($value >= $numeral['value']) {
-                $roman .= $numeral['letters'];
-                $value -= $numeral['value'];
+        foreach (self::$romanNumerals as $romanNumeral) {
+            while ($value >= $romanNumeral['value']) {
+                $roman .= $romanNumeral['letters'];
+                $value -= $romanNumeral['value'];
             }
         }
+
         return $roman;
     }
 
@@ -364,7 +370,7 @@ class DateTimeUtils
         $decimal = 0;
         $max = 1;
         $len = strlen($roman);
-        for ($i = $len - 1; $i >= 0; $i--) {
+        for ($i = $len - 1; $i >= 0; --$i) {
             $digit = $roman[$i];
             $value = self::$romanValues[$digit] ?? 0;
             if ($value < $max) {
@@ -374,6 +380,7 @@ class DateTimeUtils
                 $decimal += $value;
             }
         }
+
         return $decimal;
     }
 
@@ -385,6 +392,7 @@ class DateTimeUtils
             array_unshift($letters, chr(($value - 1) % 26 + $aCode));
             $value = (int) (($value - 1) / 26);
         }
+
         return implode('', $letters);
     }
 
@@ -411,6 +419,7 @@ class DateTimeUtils
                 if ($format->case_type === 'upper') {
                     $formattedInteger = strtoupper($formattedInteger);
                 }
+
                 break;
             case 'words':
                 $formattedInteger = self::numberToWords($value, $format->ordinal);
@@ -419,6 +428,7 @@ class DateTimeUtils
                 } elseif ($format->case_type === 'lower') {
                     $formattedInteger = strtolower($formattedInteger);
                 }
+
                 break;
             case 'decimal':
                 $formattedInteger = (string) $value;
@@ -432,20 +442,21 @@ class DateTimeUtils
                     foreach ($chars as &$char) {
                         $char = chr(ord($char) + $format->zeroCode - 0x30);
                     }
+
                     $formattedInteger = implode('', $chars);
                 }
 
                 if ($format->regular) {
                     $sep = $format->groupingSeparators[0];
                     $n = (strlen($formattedInteger) - 1) / $sep->position;
-                    for ($i = (int) $n; $i > 0; $i--) {
+                    for ($i = (int) $n; $i > 0; --$i) {
                         $pos = strlen($formattedInteger) - $i * $sep->position;
                         $formattedInteger = substr_replace($formattedInteger, $sep->character, $pos, 0);
                     }
                 } else {
                     $separators = $format->groupingSeparators;
                     $len = strlen($formattedInteger);
-                    for ($i = count($separators) - 1; $i >= 0; $i--) {
+                    for ($i = count($separators) - 1; $i >= 0; --$i) {
                         $sep = $separators[$i];
                         $pos = $len - $sep->position;
                         $formattedInteger = substr_replace($formattedInteger, $sep->character, $pos, 0);
@@ -458,11 +469,13 @@ class DateTimeUtils
                     if ($suffix === null || (strlen($formattedInteger) > 1 && $formattedInteger[strlen($formattedInteger) - 2] === '1')) {
                         $suffix = "th";
                     }
+
                     $formattedInteger .= $suffix;
                 }
+
                 break;
             case 'sequence':
-                throw new RuntimeException("Sequence formatting not supported for token: {$format->token}");
+                throw new RuntimeException('Sequence formatting not supported for token: ' . $format->token);
         }
 
         if ($negative) {
@@ -530,29 +543,30 @@ class DateTimeUtils
                 $separatorPosition = 0;
                 $formatCodepoints = array_reverse(str_split($primaryFormat));
 
-                foreach ($formatCodepoints as $codePoint) {
+                foreach ($formatCodepoints as $formatCodepoint) {
                     $digit = false;
-                    $code = ord($codePoint);
-                    foreach (self::$decimalGroups as $group) {
-                        if ($code >= $group && $code <= $group + 9) {
+                    $code = ord($formatCodepoint);
+                    foreach (self::$decimalGroups as $decimalGroup) {
+                        if ($code >= $decimalGroup && $code <= $decimalGroup + 9) {
                             $digit = true;
-                            $mandatoryDigits++;
-                            $separatorPosition++;
+                            ++$mandatoryDigits;
+                            ++$separatorPosition;
                             if ($zeroCode === null) {
-                                $zeroCode = $group;
-                            } elseif ($group !== $zeroCode) {
+                                $zeroCode = $decimalGroup;
+                            } elseif ($decimalGroup !== $zeroCode) {
                                 throw new RuntimeException("Different decimal groups found in picture string");
                             }
+
                             break;
                         }
                     }
 
                     if (!$digit) {
                         if ($code === 0x23) { // '#'
-                            $separatorPosition++;
-                            $optionalDigits++;
+                            ++$separatorPosition;
+                            ++$optionalDigits;
                         } else {
-                            $groupingSeparators[] = (object) ['position' => $separatorPosition, 'character' => $codePoint];
+                            $groupingSeparators[] = (object) ['position' => $separatorPosition, 'character' => $formatCodepoint];
                         }
                     }
                 }
@@ -576,12 +590,13 @@ class DateTimeUtils
                     $format->token = $primaryFormat;
                 }
         }
+
         return $format;
     }
 
     private static function getRegularRepeat(array $separators): int
     {
-        if (empty($separators)) {
+        if ($separators === []) {
             return 0;
         }
 
@@ -599,12 +614,14 @@ class DateTimeUtils
         };
 
         $factor = array_reduce($indexes, fn ($carry, $item) => $gcd($carry, $item), $indexes[0]);
+        $counter = count($indexes);
 
-        for ($i = 1; $i <= count($indexes); $i++) {
+        for ($i = 1; $i <= $counter; ++$i) {
             if (!in_array($i * $factor, $indexes)) {
                 return 0;
             }
         }
+
         return $factor;
     }
 
@@ -649,6 +666,7 @@ class DateTimeUtils
                         $min = substr($widthMod, 0, $dash);
                         $max = substr($widthMod, $dash + 1);
                     }
+
                     $def->width = (object) ['min' => self::parseWidth($min), 'max' => self::parseWidth($max)];
                     $presMod = substr($marker, 1, $comma - 1);
                 } else {
@@ -664,6 +682,7 @@ class DateTimeUtils
                         if ($lastChar === 'o') {
                             $def->ordinal = true;
                         }
+
                         $def->presentation1 = substr($presMod, 0, -1);
                     } else {
                         $def->presentation1 = $presMod;
@@ -673,27 +692,25 @@ class DateTimeUtils
                 }
 
                 if ($def->presentation1 === null) {
-                    throw new RuntimeException("Unknown component specifier: {$def->component}");
+                    throw new RuntimeException('Unknown component specifier: ' . $def->component);
                 }
 
                 if ($def->presentation1[0] === 'n') {
                     $def->names = 'lower';
                 } elseif ($def->presentation1[0] === 'N') {
-                    if (strlen($def->presentation1) > 1 && $def->presentation1[1] === 'n') {
-                        $def->names = 'title';
-                    } else {
-                        $def->names = 'upper';
-                    }
+                    $def->names = strlen($def->presentation1) > 1 && $def->presentation1[1] === 'n' ? 'title' : 'upper';
                 } elseif (str_contains('YMDdFWwXxHhmsf', $def->component)) {
                     $integerPattern = $def->presentation1;
                     if (isset($def->presentation2)) {
                         $integerPattern .= ";" . $def->presentation2;
                     }
+
                     $def->integerFormat = self::analyseIntegerPicture($integerPattern);
                     $def->integerFormat->ordinal = $def->ordinal;
                     if (isset($def->width->min) && $def->integerFormat->mandatoryDigits < $def->width->min) {
                         $def->integerFormat->mandatoryDigits = $def->width->min;
                     }
+
                     if ($def->component === 'Y') {
                         $def->n = -1;
                         if (isset($def->width->max)) {
@@ -716,8 +733,10 @@ class DateTimeUtils
                 $format->parts[] = $def;
                 $start = $pos + 1;
             }
-            $pos++;
+
+            ++$pos;
         }
+
         self::addLiteral($format, $picture, $start, $pos);
         return $format;
     }
@@ -726,11 +745,8 @@ class DateTimeUtils
     {
         if ($end > $start) {
             $literal = substr($picture, $start, $end - $start);
-            if ($literal === ']]') {
-                $literal = ']';
-            } else {
-                $literal = str_replace(']]', ']', $literal);
-            }
+            $literal = $literal === ']]' ? ']' : str_replace(']]', ']', $literal);
+
             $format->parts[] = (object) ['type' => 'literal', 'value' => $literal];
         }
     }
@@ -740,6 +756,7 @@ class DateTimeUtils
         if ($wm === null || $wm === "*") {
             return null;
         }
+
         return (int) $wm;
     }
 
@@ -759,6 +776,7 @@ class DateTimeUtils
             if (self::$iso8601Spec === null) {
                 self::$iso8601Spec = self::analyseDateTimePicture("[Y0001]-[M01]-[D01]T[H01]:[m01]:[s01].[f001][Z01:01t]");
             }
+
             $formatSpec = self::$iso8601Spec;
         } else {
             $formatSpec = self::analyseDateTimePicture($picture);
@@ -772,29 +790,29 @@ class DateTimeUtils
             if ($part->type === 'literal') {
                 $result .= $part->value;
             } else {
-                $result .= self::formatComponent($dateTime, $part, $offsetHours, $offsetMinutes, $millis);
+                $result .= self::formatComponent($dateTime, $part, $offsetHours, $offsetMinutes);
             }
         }
+
         return $result;
     }
 
-    private static function formatComponent(\DateTime $date, object $markerSpec, int $offsetHours, int $offsetMinutes, int $originalMillis): string
+    private static function formatComponent(\DateTime $date, object $markerSpec, int $offsetHours, int $offsetMinutes): string
     {
         $componentValue = self::getDateTimeFragment($date, $markerSpec->component);
 
         if (str_contains('YMDdFWwXxHhms', $markerSpec->component)) {
-            if ($markerSpec->component === 'Y') {
-                if (isset($markerSpec->n) && $markerSpec->n !== -1) {
-                    $componentValue = (string) ((int) $componentValue % 10 ** $markerSpec->n);
-                }
+            if ($markerSpec->component === 'Y' && (isset($markerSpec->n) && $markerSpec->n !== -1)) {
+                $componentValue = (string) ((int) $componentValue % 10 ** $markerSpec->n);
             }
+
             if (isset($markerSpec->names)) {
                 if ($markerSpec->component === 'M' || $markerSpec->component === 'x') {
                     $componentValue = self::$months[(int) $componentValue - 1];
                 } elseif ($markerSpec->component === 'F') {
                     $componentValue = self::$days[(int) $componentValue];
                 } else {
-                    throw new RuntimeException("Invalid name modifier for component {$markerSpec->component}");
+                    throw new RuntimeException('Invalid name modifier for component ' . $markerSpec->component);
                 }
 
                 if ($markerSpec->names === 'upper') {
@@ -828,12 +846,15 @@ class DateTimeUtils
                     throw new RuntimeException("Timezone format is invalid.");
                 }
             }
+
             if ($offset >= 0) {
                 $componentValue = "+" . $componentValue;
             }
+
             if ($markerSpec->component === 'z') {
                 $componentValue = "GMT" . $componentValue;
             }
+
             if ($offset === 0 && isset($markerSpec->presentation2) && $markerSpec->presentation2 === 't') {
                 $componentValue = "Z";
             }
@@ -842,6 +863,7 @@ class DateTimeUtils
                 $componentValue = strtoupper($componentValue);
             }
         }
+
         return $componentValue;
     }
 
@@ -879,6 +901,7 @@ class DateTimeUtils
                     // The week of the first day of the month is in the previous year's week range
                     $componentValue += (int) (new \DateTime($firstDayOfMonth->format('Y') . '-12-28'))->format('W');
                 }
+
                 break;
             case 'H': // hour in day (24 hours)
                 $componentValue = $date->format('H');
@@ -916,6 +939,7 @@ class DateTimeUtils
                 $componentValue = "";
                 break;
         }
+
         return (string) $componentValue;
     }
 
@@ -928,6 +952,7 @@ class DateTimeUtils
         foreach ($matchSpec->parts as $part) {
             $fullRegex .= "(" . $part->regex . ")";
         }
+
         $fullRegex .= "$/i";
 
         if (preg_match($fullRegex, (string) $timestamp, $matches)) {
@@ -939,7 +964,7 @@ class DateTimeUtils
             $tmB = 47;
 
             $components = [];
-            for ($i = 1; $i <= count($matches) - 1; $i++) {
+            for ($i = 1; $i <= count($matches) - 1; ++$i) {
                 $mpart = $matchSpec->parts[$i - 1];
                 try {
                     $components[$mpart->component] = call_user_func($mpart->parser, $matches[$i]);
@@ -948,7 +973,7 @@ class DateTimeUtils
                 }
             }
 
-            if (empty($components)) {
+            if ($components === []) {
                 return null;
             }
 
@@ -959,6 +984,7 @@ class DateTimeUtils
                     $mask += 1;
                 }
             }
+
             $dateA = self::isType($dmA, $mask);
             $dateB = !$dateA && self::isType($dmB, $mask);
             $dateC = self::isType($dmC, $mask);
@@ -1011,9 +1037,11 @@ class DateTimeUtils
                 $components['M'] = (int) $firstJan->format('n') - 1;
                 $components['D'] = (int) $firstJan->format('j');
             }
+
             if ($dateC || $dateD) {
                 throw new RuntimeException("ISO week date formats not currently supported.");
             }
+
             if ($timeB) {
                 $components['H'] = $components['h'] == 12 ? 0 : $components['h'];
                 if (isset($components['P']) && $components['P'] == 1) {
@@ -1059,10 +1087,12 @@ class DateTimeUtils
                 if ($part->component == 'z') {
                     $regex = "GMT";
                 }
+
                 $regex .= "[-+][0-9]+";
                 if ($separator) {
                     $regex .= preg_quote((string) $part->integerFormat->groupingSeparators[0]->character, '/') . "[0-9]+";
                 }
+
                 $res = (object) [
                     'regex' => $regex,
                     'component' => $part->component,
@@ -1070,6 +1100,7 @@ class DateTimeUtils
                         if ($part->component == 'z') {
                             $value = substr($value, 3);
                         }
+
                         $offsetHours = 0;
                         $offsetMinutes = 0;
                         if ($separator) {
@@ -1084,6 +1115,7 @@ class DateTimeUtils
                                 $offsetMinutes = (int) substr($value, 3);
                             }
                         }
+
                         return $offsetHours * 60 + $offsetMinutes;
                     }
                 ];
@@ -1093,7 +1125,8 @@ class DateTimeUtils
                 $regex = "[a-zA-Z]+";
                 $lookup = [];
                 if ($part->component == 'M' || $part->component == 'x') {
-                    for ($i = 0; $i < count(self::$months); $i++) {
+                    $counter = count(self::$months);
+                    for ($i = 0; $i < $counter; ++$i) {
                         if (isset($part->width->right)) {
                             $lookup[substr((string) self::$months[$i], 0, $part->width->right)] = $i + 1;
                         } else {
@@ -1101,7 +1134,8 @@ class DateTimeUtils
                         }
                     }
                 } elseif ($part->component == 'F') {
-                    for ($i = 1; $i < count(self::$days); $i++) {
+                    $counter = count(self::$days);
+                    for ($i = 1; $i < $counter; ++$i) {
                         if (isset($part->width->right)) {
                             $lookup[substr((string) self::$days[$i], 0, $part->width->right)] = $i;
                         } else {
@@ -1116,14 +1150,17 @@ class DateTimeUtils
                 } else {
                     throw new RuntimeException(sprintf("Invalid name modifier for component '%s'.", $part->component));
                 }
+
                 $res = (object) [
                     'regex' => $regex,
                     'component' => $part->component,
                     'parser' => fn ($value) => $lookup[$value]
                 ];
             }
+
             $matcher->parts[] = $res;
         }
+
         return $matcher;
     }
 
@@ -1161,14 +1198,17 @@ class DateTimeUtils
                         $regex = "[0-9]{1,2}";
                         break;
                 }
+
                 if ($formatSpec->ordinal) {
                     $regex .= "(?:th|st|nd|rd)";
                 }
+
                 $parser = function ($value) use ($formatSpec) {
                     $digits = $value;
                     if ($formatSpec->ordinal) {
                         $digits = substr($value, 0, -2);
                     }
+
                     if ($formatSpec->regular) {
                         $digits = str_replace(",", "", $digits);
                     } else {
@@ -1176,13 +1216,16 @@ class DateTimeUtils
                             $digits = str_replace($sep->character, "", $digits);
                         }
                     }
+
                     if ($formatSpec->zeroCode != 0x30) {
                         $chars = str_split($digits);
                         foreach ($chars as &$char) {
                             $char = chr(ord($char) - $formatSpec->zeroCode + 0x30);
                         }
+
                         $digits = implode("", $chars);
                     }
+
                     return (int) $digits;
                 };
                 break;
@@ -1190,6 +1233,7 @@ class DateTimeUtils
             default:
                 throw new RuntimeException("Sequence format unsupported.");
         }
+
         return (object) [
             'regex' => $regex,
             'component' => $component,
@@ -1202,9 +1246,10 @@ class DateTimeUtils
         $decimal = 0;
         $chars = str_split((string) $letters);
         $len = count($chars);
-        for ($i = 0; $i < $len; $i++) {
+        for ($i = 0; $i < $len; ++$i) {
             $decimal += (ord($chars[$len - $i - 1]) - ord($aChar) + 1) * 26 ** $i;
         }
+
         return $decimal;
     }
 
@@ -1221,7 +1266,7 @@ class DateTimeUtils
         $current = 0;
         foreach ($parts as $part) {
             $part = trim($part);
-            if (empty($part) || $part == 'and') {
+            if ($part === '' || $part === '0' || $part === 'and') {
                 continue;
             }
 
@@ -1237,6 +1282,7 @@ class DateTimeUtils
                 }
             }
         }
+
         return $total + $current;
     }
 }
@@ -1250,21 +1296,28 @@ class UnsupportedOperationException extends \Exception
 class PictureFormat
 {
 }
+
 class SpecPart
 {
 }
+
 class Format
 {
 }
+
 class GroupingSeparator
 {
 }
+
 class Pair
 {
 }
+
 class Constants
 {
     public const ERR_MSG_MISSING_FORMAT = "Missing or unsupported format.";
+
     public const ERR_MSG_INVALID_NAME_MODIFIER = "Invalid name modifier for component '%s'.";
+
     public const ERR_MSG_SEQUENCE_UNSUPPORTED = "Sequence format unsupported.";
 }

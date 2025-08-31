@@ -7,16 +7,24 @@ namespace Monster\JsonataPhp;
 class Parser
 {
     public $dbg = false;
+
     public $source;
+
     public $recover;
+
     public ?Symbol $node = null;
+
     public $lexer;
+
     public $symbolTable = [];
+
     public $errors = [];
 
     /** @var Symbol[] */
     public $ancestry = [];
+
     public int $ancestorLabel = 0;
+
     public int $ancestorIndex = 0;
 
     public function __construct()
@@ -74,40 +82,42 @@ class Parser
 
 
 
-    public function tailCallOptimize(?Symbol $expr): Symbol
+    public function tailCallOptimize(?Symbol $symbol): Symbol
     {
         $result = null;
 
-        if ($expr->type === "function" && $expr->predicate === null) {
+        if ($symbol->type === "function" && $symbol->predicate === null) {
             // Replace function with a thunk for tail-call optimization
             $thunk = new Symbol($this, "");
             $thunk->type = "lambda";
             $thunk->thunk = true;
             $thunk->arguments = [];   // empty arguments list
-            $thunk->position = $expr->position;
-            $thunk->body = $expr;
+            $thunk->position = $symbol->position;
+            $thunk->body = $symbol;
 
             $result = $thunk;
 
-        } elseif ($expr->type === "condition") {
+        } elseif ($symbol->type === "condition") {
             // Analyze both branches
-            $expr->then = $this->tailCallOptimize($expr->then);
-            if (isset($expr->_else) && $expr->_else !== null) {
-                $expr->_else = $this->tailCallOptimize($expr->_else);
+            $symbol->then = $this->tailCallOptimize($symbol->then);
+            if (isset($symbol->_else) && $symbol->_else !== null) {
+                $symbol->_else = $this->tailCallOptimize($symbol->_else);
             }
-            $result = $expr;
 
-        } elseif ($expr->type === "block") {
+            $result = $symbol;
+
+        } elseif ($symbol->type === "block") {
             // Only optimize the last expression in the block
-            $length = count($expr->expressions);
+            $length = count($symbol->expressions);
             if ($length > 0) {
-                $expr->expressions[$length - 1] = $this->tailCallOptimize($expr->expressions[$length - 1]);
+                $symbol->expressions[$length - 1] = $this->tailCallOptimize($symbol->expressions[$length - 1]);
             }
-            $result = $expr;
+
+            $result = $symbol;
 
         } else {
             // All other expressions are returned as-is
-            $result = $expr;
+            $result = $symbol;
         }
 
         return $result;
@@ -120,16 +130,19 @@ class Parser
         $this->advance();
         $expr = $this->expression(0);
         if ($this->node->id !== '(end)') {
-            $err = new JException("S0201", $this->node->position, $this->node->value);
-            $this->handleError($err);
+            $jException = new JException("S0201", $this->node->position, $this->node->value);
+            $this->handleError($jException);
         }
+
         $expr = $this->processAST($expr);
         if ($expr->type === 'parent' || ($expr->seekingParent ?? null) !== null) {
             throw new JException("S0217", $expr->position, $expr->type);
         }
+
         if (count($this->errors) > 0) {
             $expr->errors = $this->errors;
         }
+
         return $expr;
     }
 
@@ -137,15 +150,17 @@ class Parser
     {
         if ($id !== null && $this->node->id !== $id) {
             $code = $this->node->id === '(end)' ? "S0203" : "S0202";
-            $err = new JException($code, $this->node->position, $this->node->value);
-            return $this->handleError($err);
+            $jException = new JException($code, $this->node->position, $this->node->value);
+            return $this->handleError($jException);
         }
+
         $next_token = $this->lexer->next($infix);
         if ($next_token === null) {
             $this->node = $this->symbolTable['(end)'];
             $this->node->position = strlen((string) $this->source);
             return $this->node;
         }
+
         $value = $next_token->value;
         $type = $next_token->type;
         $symbol = null;
@@ -159,6 +174,7 @@ class Parser
                 if ($symbol === null) {
                     return $this->handleError(new JException("S0204", $next_token->position, $value));
                 }
+
                 break;
             case 'string':
             case 'number':
@@ -172,6 +188,7 @@ class Parser
             default:
                 return $this->handleError(new JException("S0205", $next_token->position, $value));
         }
+
         $this->node = $symbol->create();
         $this->node->value = $value;
         $this->node->type = $type;
@@ -195,15 +212,14 @@ class Parser
         return $left;
     }
 
-    public function handleError(JException $err)
+    public function handleError(JException $jException)
     {
         if ($this->recover) {
-            $err->remaining = $this->remainingTokens();
-            $this->errors[] = $err;
-            $node = new Symbol($this, 'null');
-            return $node;
+            $jException->remaining = $this->remainingTokens();
+            $this->errors[] = $jException;
+            return new Symbol($this, 'null');
         } else {
-            throw $err;
+            throw $jException;
         }
     }
 
@@ -211,39 +227,42 @@ class Parser
     {
         $remaining = [];
         if ($this->node->id !== '(end)') {
-            $t = new JsonataToken(
+            $jsonataToken = new JsonataToken(
                 $this->node->type,
                 $this->node->value,
                 $this->node->position
             );
-            $remaining[] = $t;
+            $remaining[] = $jsonataToken;
         }
+
         $nxt = $this->lexer->next(false);
         while ($nxt !== null) {
             $remaining[] = $nxt;
             $nxt = $this->lexer->next(false);
         }
+
         return $remaining;
     }
 
-    public function register(Symbol $t)
+    public function register(Symbol $symbol)
     {
-        $s = $this->symbolTable[$t->id] ?? null;
+        $s = $this->symbolTable[$symbol->id] ?? null;
         if ($s !== null) {
-            if ($t->bp >= $s->lbp) {
-                $s->lbp = $t->bp;
+            if ($symbol->bp >= $s->lbp) {
+                $s->lbp = $symbol->bp;
             }
         } else {
-            $s = $t->create();
-            $s->value = $s->id = $t->id;
-            $s->lbp = $t->bp;
-            $this->symbolTable[$t->id] = $s;
+            $s = $symbol->create();
+            $s->value = $symbol->id;
+            $s->id = $symbol->id;
+            $s->lbp = $symbol->bp;
+            $this->symbolTable[$symbol->id] = $s;
             if ($this->dbg) {
                 print_r(
                     "Symbol in table "
-                    . $t->id . " "
+                    . $symbol->id . " "
                     . $s::class . " -> "
-                    . " s.lbp -> {$s->lbp} s.bp -> {$s->bp}"
+                    . sprintf(' s.lbp -> %d s.bp -> %d', $s->lbp, $s->bp)
                     // . get_class($t)
                     . PHP_EOL
                 );
@@ -255,13 +274,13 @@ class Parser
      * Parses an object literal.
      * This can be a prefix operator (e.g., {"a": 1}) or an infix operator.
      *
-     * @param Symbol|null $left The symbol on the left-hand side, if this is an infix operation.
+     * @param Symbol|null $symbol The symbol on the left-hand side, if this is an infix operation.
      * @return Symbol The resulting Symbol node for the object.
      */
-    public function objectParser(?Symbol $left): Symbol
+    public function objectParser(?Symbol $symbol): Symbol
     {
         // If $left is not null, it's an infix operation; otherwise, it's a prefix one.
-        $res = $left !== null ? new _Infix($this, "{") : new _Prefix($this, "{");
+        $res = $symbol instanceof \Monster\JsonataPhp\Symbol ? new _Infix($this, "{") : new _Prefix($this, "{");
 
         // This array will hold the key/value pairs of the object.
         $a = [];
@@ -281,6 +300,7 @@ class Parser
                 if ($this->node->id !== ",") {
                     break;
                 }
+
                 // Otherwise, consume the comma and parse the next pair.
                 $this->advance(",");
             }
@@ -289,14 +309,14 @@ class Parser
         // Expect and consume the closing brace.
         $this->advance("}", true);
 
-        if ($left === null) {
+        if (!$symbol instanceof \Monster\JsonataPhp\Symbol) {
             // It's a prefix expression (e.g., a standalone object literal).
             // In PHP, type casting like in Java isn't needed.
             $res->lhsObject = $a;
             $res->type = "unary";
         } else {
             // It's an infix expression.
-            $res->lhs = $left;
+            $res->lhs = $symbol;
             $res->rhsObject = $a;
             $res->type = "binary";
         }
@@ -317,21 +337,23 @@ class Parser
         switch ($node->type) {
             case "name":
             case "wildcard":
-                $slot->level--;
+                --$slot->level;
                 if ($slot->level == 0) {
-                    if ($node->ancestor === null) {
+                    if (!$node->ancestor instanceof \Monster\JsonataPhp\Symbol) {
                         $node->ancestor = $slot;
                     } else {
                         // Reuse the existing label from the ancestry list
                         $this->ancestry[(int) $slot->index]->slot->label = $node->ancestor->label;
                         $node->ancestor = $slot;
                     }
+
                     $node->tuple = true;
                 }
+
                 break;
 
             case "parent":
-                $slot->level++;
+                ++$slot->level;
                 break;
 
             case "block":
@@ -341,6 +363,7 @@ class Parser
                     $lastExpression = $node->expressions[count($node->expressions) - 1];
                     $slot = $this->seekParent($lastExpression, $slot);
                 }
+
                 break;
 
             case "path":
@@ -356,6 +379,7 @@ class Parser
                         $slot = $this->seekParent($node->steps[$index--], $slot);
                     }
                 }
+
                 break;
 
             default:
@@ -380,7 +404,7 @@ class Parser
     private function pushAncestry(Symbol $result, ?Symbol $value): void
     {
         // Corresponds to the NPE (Null Pointer Exception) check in Java.
-        if ($value === null) {
+        if (!$value instanceof \Monster\JsonataPhp\Symbol) {
             return;
         }
 
@@ -409,19 +433,19 @@ class Parser
      * Resolves the ancestry for a 'path' symbol by iterating backwards
      * through its steps to find the appropriate parent scope.
      *
-     * @param Symbol $path The path symbol to resolve.
+     * @param Symbol $symbol The path symbol to resolve.
      * @return void This method modifies the $path object in place.
      */
-    private function resolveAncestry(Symbol $path): void
+    private function resolveAncestry(Symbol $symbol): void
     {
         // If there are no steps in the path, there's nothing to resolve.
-        if (empty($path->steps)) {
+        if ($symbol->steps === null || $symbol->steps === []) {
             return;
         }
 
         // Get the last step in the path to start the process.
         // `end()` is a convenient PHP function to get the last element of an array.
-        $laststep = end($path->steps);
+        $laststep = end($symbol->steps);
 
         // Use the null coalescing operator (??) as a shorthand.
         $slots = $laststep->seekingParent ?? [];
@@ -432,25 +456,26 @@ class Parser
 
         // A `foreach` loop is more idiomatic in PHP for iterating over arrays.
         foreach ($slots as $slot) {
-            $index = count($path->steps) - 2; // Start with the second-to-last step.
+            $index = count($symbol->steps) - 2; // Start with the second-to-last step.
 
             while ($slot->level > 0) {
                 if ($index < 0) {
                     // If we've run out of steps, the ancestry search is promoted
                     // to the path's parent.
-                    if ($path->seekingParent === null) {
-                        $path->seekingParent = [];
+                    if ($symbol->seekingParent === null) {
+                        $symbol->seekingParent = [];
                     }
-                    $path->seekingParent[] = $slot;
+
+                    $symbol->seekingParent[] = $slot;
                     break;
                 }
 
                 // Get the previous step.
-                $step = $path->steps[$index--];
+                $step = $symbol->steps[$index--];
 
                 // Skip multiple contiguous steps that bind the focus.
-                while ($index >= 0 && $step->focus !== null && $path->steps[$index]->focus !== null) {
-                    $step = $path->steps[$index--];
+                while ($index >= 0 && $step->focus !== null && $symbol->steps[$index]->focus !== null) {
+                    $step = $symbol->steps[$index--];
                 }
 
                 // Delegate to seekParent to process the step.
@@ -472,7 +497,7 @@ class Parser
     private function processAST(?Symbol $expr): ?Symbol
     {
         $result = $expr;
-        if ($expr === null) {
+        if (!$expr instanceof \Monster\JsonataPhp\Symbol) {
             return null;
         }
 
@@ -509,10 +534,11 @@ class Parser
                         if (($rest->type ?? null) === 'path') {
                             $result->steps = array_merge($result->steps, $rest->steps);
                         } else {
-                            if (isset($rest->predicate)) {
+                            if ($rest->predicate !== null) {
                                 $rest->stages = $rest->predicate;
                                 unset($rest->predicate);
                             }
+
                             $result->steps[] = $rest;
                         }
 
@@ -520,20 +546,22 @@ class Parser
                             if ($step->type === 'number' || $step->type === 'value') {
                                 throw new JException("S0213", $step->position, $step->value);
                             }
+
                             if ($step->type === 'string') {
                                 $step->type = 'name';
                             }
                         }
 
-                        if (count(array_filter($result->steps, fn ($step) => $step->keepArray ?? false)) > 0) {
+                        if (array_filter($result->steps, fn ($step) => $step->keepArray ?? false) !== []) {
                             $result->keepSingletonArray = true;
                         }
 
-                        if (!empty($result->steps)) {
+                        if ($result->steps !== []) {
                             $firststep = $result->steps[0];
                             if ($firststep->type === 'unary' && (string) $firststep->value === '[') {
                                 $firststep->consarray = true;
                             }
+
                             $laststep = end($result->steps);
                             if ($laststep->type === 'unary' && (string) $laststep->value === '[') {
                                 $laststep->consarray = true;
@@ -569,9 +597,10 @@ class Parser
                                 if ($slot->level === 1) {
                                     $this->seekParent($step, $slot);
                                 } else {
-                                    $slot->level--;
+                                    --$slot->level;
                                 }
                             }
+
                             $this->pushAncestry($step, $predicate);
                         }
 
@@ -589,13 +618,15 @@ class Parser
                         } else {
                             $step->predicate[] = $s;
                         }
+
                         break;
 
                     case '{': // group-by
                         $result = $this->processAST($expr->lhs);
-                        if (isset($result->group)) {
+                        if ($result->group !== null) {
                             throw new JException("S0210", $expr->position);
                         }
+
                         $result->group = new Symbol($this);
                         $result->group->lhsObject = array_map(
                             fn ($pair) => [$this->processAST($pair[0]), $this->processAST($pair[1])],
@@ -646,12 +677,15 @@ class Parser
                         if (isset($step->stages) || isset($step->predicate)) {
                             throw new JException("S0215", $expr->position);
                         }
+
                         if ($step->type === 'sort') {
                             throw new JException("S0216", $expr->position);
                         }
+
                         if ($expr->keepArray ?? false) {
                             $step->keepArray = true;
                         }
+
                         $step->focus = $expr->rhs->value;
                         $step->tuple = true;
                         break;
@@ -664,7 +698,7 @@ class Parser
                             $pathResult->type = 'path';
                             $pathResult->steps = [$result];
                             $result = $pathResult;
-                            if (isset($step->predicate)) {
+                            if ($step->predicate !== null) {
                                 $step->stages = $step->predicate;
                                 unset($step->predicate);
                             }
@@ -681,6 +715,7 @@ class Parser
                             $indexSymbol->position = $expr->position;
                             $step->stages[] = $indexSymbol;
                         }
+
                         $step->tuple = true;
                         break;
 
@@ -706,6 +741,7 @@ class Parser
                         $result = $newResult;
                         break;
                 }
+
                 break; // end binary
 
             case 'unary':
@@ -738,6 +774,7 @@ class Parser
                         $this->pushAncestry($result, $result->expression);
                     }
                 }
+
                 break; // end unary
 
             case 'function':
@@ -773,10 +810,11 @@ class Parser
                 $this->pushAncestry($result, $result->condition);
                 $result->then = $this->processAST($expr->then);
                 $this->pushAncestry($result, $result->then);
-                if (isset($expr->_else)) {
+                if ($expr->_else instanceof \Monster\JsonataPhp\Symbol) {
                     $result->_else = $this->processAST($expr->_else);
                     $this->pushAncestry($result, $result->_else);
                 }
+
                 break;
 
             case 'transform':
@@ -785,9 +823,10 @@ class Parser
                 $result->position = $expr->position;
                 $result->pattern = $this->processAST($expr->pattern);
                 $result->update = $this->processAST($expr->update);
-                if (isset($expr->delete)) {
+                if ($expr->delete instanceof \Monster\JsonataPhp\Symbol) {
                     $result->delete = $this->processAST($expr->delete);
                 }
+
                 break;
 
             case 'block':
@@ -800,6 +839,7 @@ class Parser
                     if (($part->consarray ?? false) || ($part->type === 'path' && ($part->steps[0]->consarray ?? false))) {
                         $result->consarray = true;
                     }
+
                     return $part;
                 }, $expr->expressions);
                 break;
@@ -811,6 +851,7 @@ class Parser
                 if ($expr->keepArray ?? false) {
                     $result->keepSingletonArray = true;
                 }
+
                 break;
 
             case 'parent':
@@ -832,6 +873,7 @@ class Parser
                 } else {
                     throw new JException("S0201", $expr->position, $expr->value);
                 }
+
                 break;
 
             case 'string':
@@ -847,22 +889,23 @@ class Parser
 
             case 'error':
                 $result = $expr;
-                if (isset($expr->lhs)) {
+                if ($expr->lhs instanceof \Monster\JsonataPhp\Symbol) {
                     $result = $this->processAST($expr->lhs);
                 }
+
                 break;
 
             default:
                 $code = ($expr->id === '(end)') ? "S0207" : "S0206";
-                $err = new JException($code, $expr->position, $expr->value);
+                $jException = new JException($code, $expr->position, $expr->value);
                 if ($this->recover) {
-                    $this->errors[] = $err;
+                    $this->errors[] = $jException;
                     $ret = new Symbol($this);
                     $ret->type = 'error';
-                    $ret->error = $err;
+                    $ret->error = $jException;
                     return $ret;
                 } else {
-                    throw $err;
+                    throw $jException;
                 }
         }
 

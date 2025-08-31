@@ -11,10 +11,14 @@ class Signature
     public string $signature;
 
     public SignatureParam $param;
+
     /** @var SignatureParam[] */
     public array $params = [];
+
     public SignatureParam $prevParam;
+
     public ?\RegexIterator $regex = null;
+
     public string $compiledSignature = "";
 
     public function __construct(string $signature, public string $functionName)
@@ -35,17 +39,18 @@ class Signature
         $position = $start;
 
         while ($position < strlen($string) - 1) {
-            $position++;
+            ++$position;
             $symbol = $string[$position];
             if ($symbol === $close) {
-                $depth--;
+                --$depth;
                 if ($depth === 0) {
                     break;
                 }
             } elseif ($symbol === $open) {
-                $depth++;
+                ++$depth;
             }
         }
+
         return $position;
     }
 
@@ -54,27 +59,35 @@ class Signature
         if ($value === null) {
             return "m";
         }
+
         if (is_callable($value)) {
             return "f";
         }
+
         if ($value instanceof \Closure) {
             return "f";
         }
+
         if (is_string($value)) {
             return "s";
         }
+
         if (is_bool($value)) {
             return "b";
         }
+
         if (is_int($value) || is_float($value)) {
             return "n";
         }
+
         if (Utils::isArray($value)) {
             return "a";
         }
+
         if (Utils::isAssoc($value)) {
             return "o";
         }
+
         return "m"; // missing
     }
 
@@ -140,6 +153,7 @@ class Signature
                     } else {
                         throw new \RuntimeException("Choice groups with parameterized types not supported");
                     }
+
                     $this->param->type = "(" . $choice . ")";
                     $position = $end;
                     $this->next();
@@ -157,15 +171,18 @@ class Signature
                     } else {
                         throw new \RuntimeException("Type params only valid for functions and arrays");
                     }
+
                     break;
             }
-            $position++;
+
+            ++$position;
         }
 
         $regexStr = "^";
         foreach ($this->params as $param) {
             $regexStr .= "(" . $param->regex . ")";
         }
+
         $regexStr .= "$";
 
         $this->compiledSignature = $regexStr;
@@ -184,11 +201,12 @@ class Signature
     public function getMinNumberOfArgs(): int
     {
         $res = 0;
-        foreach ($this->params as $p) {
-            if (!str_contains((string) $p->regex, "?")) {
-                $res++;
+        foreach ($this->params as $param) {
+            if (!str_contains((string) $param->regex, "?")) {
+                ++$res;
             }
         }
+
         return $res;
     }
 
@@ -202,10 +220,15 @@ class Signature
 class SignatureParam implements \Stringable
 {
     public ?string $type = null;
+
     public ?string $regex = null;
+
     public bool $context = false;
+
     public bool $array = false;
+
     public ?string $subtype = null;
+
     public ?string $contextRegex = null;
 
     public function __toString(): string

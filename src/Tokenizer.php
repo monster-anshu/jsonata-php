@@ -51,7 +51,7 @@ class Tokenizer
 
     public const escapes = [
         // JSON string escape sequences - see json.org
-        "\"" => "\"",
+        '"' => '"',
         "\\" => "\\",
         "/" => "/",
         "b" => "\b",
@@ -60,8 +60,11 @@ class Tokenizer
         "r" => "\r",
         "t" => "\t"
     ];
+
     private int $position = 0;
+
     private readonly int $length;
+
     private int $depth = 0;
 
     public function __construct(private string $path)
@@ -71,12 +74,11 @@ class Tokenizer
 
     private function create(string $type, mixed $value): JsonataToken
     {
-        $t = new JsonataToken(
+        return new JsonataToken(
             $type,
             $value,
             $this->position
         );
-        return $t;
     }
 
     private function isClosingSlash(int $pos): bool
@@ -84,15 +86,18 @@ class Tokenizer
         if ($pos < 0 || $pos >= $this->length) {
             return false;
         }
+
         if ($this->path[$pos] === '/' && $this->depth === 0) {
             $backslashCount = 0;
             $i = $pos - 1;
             while ($i >= 0 && $this->path[$i] === '\\') {
-                $backslashCount++;
-                $i--;
+                ++$backslashCount;
+                --$i;
             }
+
             return ($backslashCount % 2) === 0;
         }
+
         return false;
     }
 
@@ -111,24 +116,27 @@ class Tokenizer
                 if ($pattern === '') {
                     throw new JException("S0301", $this->position);
                 }
-                $this->position++; // skip closing '/'
+
+                ++$this->position; // skip closing '/'
                 $flagsStart = $this->position;
 
                 // collect flags i/m (JSONata adds 'g' implicitly; we track it but PCRE doesn't need it)
                 while ($this->position < $this->length) {
                     $c = $this->path[$this->position];
                     if ($c === 'i' || $c === 'm') {
-                        $this->position++;
+                        ++$this->position;
                     } else {
                         break;
                     }
                 }
+
                 $flags = substr($this->path, $flagsStart, $this->position - $flagsStart) . 'g';
 
                 $phpFlags = '';
                 if (str_contains($flags, 'i')) {
                     $phpFlags .= 'i';
                 }
+
                 if (str_contains($flags, 'm')) {
                     $phpFlags .= 'm';
                 }
@@ -141,13 +149,16 @@ class Tokenizer
             // track bracket depth unless escaped
             $prev = $this->position > 0 ? $this->path[$this->position - 1] : null;
             if (($currentChar === '(' || $currentChar === '[' || $currentChar === '{') && $prev !== '\\') {
-                $this->depth++;
+                ++$this->depth;
             }
+
             if (($currentChar === ')' || $currentChar === ']' || $currentChar === '}') && $prev !== '\\') {
-                $this->depth--;
+                --$this->depth;
             }
-            $this->position++;
+
+            ++$this->position;
         }
+
         throw new JException("S0302", $this->position);
     }
 
@@ -185,10 +196,11 @@ class Tokenizer
 
         // skip whitespace
         while ($this->position < $this->length && str_contains(" \t\n\r", $currentChar)) {
-            $this->position++;
+            ++$this->position;
             if ($this->position >= $this->length) {
                 return null;
             }
+
             $currentChar = $this->path[$this->position];
         }
 
@@ -200,18 +212,20 @@ class Tokenizer
                 $this->position + 1 < $this->length &&
                 !($this->path[$this->position] === '*' && $this->path[$this->position + 1] === '/')
             ) {
-                $this->position++;
+                ++$this->position;
             }
+
             if ($this->position + 1 >= $this->length) {
                 throw new JException("S0106", $commentStart);
             }
+
             $this->position += 2; // consume */
             return $this->next($prefix); // swallow following whitespace too
         }
 
         // test for regex (only when not in prefix position)
-        if ($prefix !== true && $currentChar === '/') {
-            $this->position++; // consume initial '/'
+        if (!$prefix && $currentChar === '/') {
+            ++$this->position; // consume initial '/'
             return $this->create("regex", $this->scanRegex());
         }
 
@@ -235,22 +249,23 @@ class Tokenizer
 
         // single-char operators
         if (array_key_exists($currentChar, self::operators)) {
-            $this->position++;
+            ++$this->position;
             return $this->create("operator", $currentChar);
         }
 
         // string literals (' or ")
         if ($currentChar === '"' || $currentChar === "'") {
             $quoteType = $currentChar;
-            $this->position++; // skip opening quote
+            ++$this->position; // skip opening quote
             $qstr = '';
             while ($this->position < $this->length) {
                 $c = $this->path[$this->position];
                 if ($c === '\\') { // escape
-                    $this->position++;
+                    ++$this->position;
                     if ($this->position >= $this->length) {
                         throw new JException("S0301", $this->position);
                     }
+
                     $esc = $this->path[$this->position];
                     if (array_key_exists($esc, self::escapes)) {
                         $qstr .= self::escapes[$esc];
@@ -259,10 +274,12 @@ class Tokenizer
                         if ($this->position + 4 >= $this->length) {
                             throw new JException("S0104", $this->position);
                         }
+
                         $octets = substr($this->path, $this->position + 1, 4);
                         if (preg_match('/^[0-9a-fA-F]{4}$/', $octets) !== 1) {
                             throw new JException("S0104", $this->position);
                         }
+
                         $codepoint = intval($octets, 16);
                         $qstr .= $this->codepointToUtf8($codepoint);
                         $this->position += 4;
@@ -270,37 +287,41 @@ class Tokenizer
                         throw new JException("S0301", $this->position, $esc);
                     }
                 } elseif ($c === $quoteType) {
-                    $this->position++; // consume closing quote
+                    ++$this->position; // consume closing quote
                     return $this->create("string", $qstr);
                 } else {
                     $qstr .= $c;
                 }
-                $this->position++;
+
+                ++$this->position;
             }
+
             throw new JException("S0101", $this->position);
         }
 
         // numbers
         $rest = substr($this->path, $this->position);
-        if (preg_match('/^-?(0|([1-9][0-9]*))(\.[0-9]+)?([Ee][-+]?[0-9]+)?/', $rest, $m) === 1) {
+        if (preg_match('/^-?(0|([1-9]\d*))(\.\d+)?([Ee][-+]?\d+)?/', $rest, $m) === 1) {
             $lexeme = $m[0];
             $num = (float) $lexeme;
             if (!is_nan($num) && is_finite($num)) {
                 $this->position += strlen($lexeme);
                 return $this->create("number", Utils::convertNumber($num));
             }
+
             throw new JException("S0102", $this->position);
         }
 
         // quoted names with backticks
         if ($currentChar === '`') {
-            $this->position++;
+            ++$this->position;
             $end = strpos($this->path, '`', $this->position);
             if ($end !== false) {
                 $name = substr($this->path, $this->position, $end - $this->position);
                 $this->position = $end + 1;
                 return $this->create("name", $name);
             }
+
             $this->position = $this->length;
             throw new JException("S0105", $this->position);
         }
@@ -334,11 +355,12 @@ class Tokenizer
                             if ($this->position === $this->length && $name === "") {
                                 return null; // trailing whitespace
                             }
+
                             return $this->create("name", $name);
                     }
                 }
             } else {
-                $i++;
+                ++$i;
             }
         }
     }
@@ -351,10 +373,11 @@ class Tokenizer
         while ($run) {
             $token = $this->next();
             $tokens[] = $token;
-            if ($token === null) {
+            if (!$token instanceof \Monster\JsonataPhp\JsonataToken) {
                 $run = false;
             }
         }
+
         return $tokens;
     }
 }

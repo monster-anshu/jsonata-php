@@ -34,18 +34,23 @@ class Utils
         if (is_bool($v)) {
             return false;
         }
+
         if (is_int($v)) {
             return true;
         }
+
         if (is_float($v)) {
             if (is_nan($v)) {
                 return false;
             }
+
             if (!is_finite($v)) {
                 throw new JException("D1001", 0, $v);
             }
+
             return true;
         }
+
         return false;
     }
 
@@ -60,12 +65,15 @@ class Utils
         if ($arr instanceof \ArrayObject) {
             return true;
         }
+
         if (!is_array($arr)) {
             return false;
         }
-        if (empty($arr)) {
+
+        if ($arr === []) {
             return true;
         }
+
         return array_keys($arr) === range(0, count($arr) - 1);
     }
 
@@ -81,8 +89,9 @@ class Utils
         if (!is_array($arr)) {
             return false;
         }
+
         // A simple, fast check for a non-empty array
-        if (empty($arr)) {
+        if ($arr === []) {
             return false;
         }
 
@@ -104,8 +113,10 @@ class Utils
                     return false;
                 }
             }
+
             return true;
         }
+
         return false;
     }
 
@@ -123,8 +134,10 @@ class Utils
                     return false;
                 }
             }
+
             return true;
         }
+
         return false;
     }
 
@@ -172,7 +185,6 @@ class Utils
     /**
      * Creates a sequence from an iterable.
      *
-     * @param iterable $it
      * @return JList
      */
     public static function createSequenceFromIter(iterable $it)
@@ -223,6 +235,7 @@ class Utils
         if (self::$nullValue === null) {
             self::init();
         }
+
         return $val !== self::$nullValue ? $val : null;
     }
 
@@ -238,6 +251,7 @@ class Utils
             if ($v !== $val) {
                 $res[$key] = $v;
             }
+
             self::recurse($val);
         }
     }
@@ -254,6 +268,7 @@ class Utils
             if ($v !== $val) {
                 $res->$key = $v;
             }
+
             self::recurse($val);
         }
     }
@@ -297,9 +312,13 @@ class Utils
 class JList extends \ArrayObject implements \JsonSerializable
 {
     public bool $sequence = false;
+
     public bool $outerWrapper = false;
+
     public bool $tupleStream = false;
+
     public bool $keepSingleton = false;
+
     public bool $cons = false;
 
     public function __construct(array|JList $input = [], int $flags = 0, string $iterator_class = "ArrayIterator")
@@ -366,6 +385,7 @@ class RangeList extends JList
         if ($index < $this->size) {
             return Utils::convertNumber($this->a + $index);
         }
+
         throw new \OutOfBoundsException("Index out of bounds: " . $index);
     }
 

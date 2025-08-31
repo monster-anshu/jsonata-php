@@ -6,9 +6,9 @@ namespace Monster\JsonataPhp;
 
 class _InfixOr extends _Infix
 {
-    public function __construct(Parser $outerInstance)
+    public function __construct(Parser $parser)
     {
-        parent::__construct($outerInstance, "or");
+        parent::__construct($parser, "or");
         $this->construct_args = func_get_args();
     }
 

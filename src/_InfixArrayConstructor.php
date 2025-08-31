@@ -6,9 +6,9 @@ namespace Monster\JsonataPhp;
 
 class _InfixArrayConstructor extends _Infix
 {
-    public function __construct(Parser $outerInstance, int $bp)
+    public function __construct(Parser $parser, int $bp)
     {
-        parent::__construct($outerInstance, "[", $bp);
+        parent::__construct($parser, "[", $bp);
         $this->construct_args = func_get_args();
     }
 
@@ -28,31 +28,35 @@ class _InfixArrayConstructor extends _Infix
                     $range->rhs = $this->outerInstance->expression(0);
                     $item = $range;
                 }
+
                 $a[] = $item;
                 if ($this->outerInstance->node->id !== ",") {
                     break;
                 }
+
                 $this->outerInstance->advance(",");
             }
         }
+
         $this->outerInstance->advance("]", true);
         $this->expressions = $a;
         $this->type = "unary";
         return $this;
     }
 
-    public function led(Symbol $left): Symbol
+    public function led(Symbol $symbol): Symbol
     {
         if ($this->outerInstance->node->id === "]") {
-            $step = $left;
-            while ($step !== null && $step->type === "binary" && $step->value === "[") {
+            $step = $symbol;
+            while ($step instanceof \Monster\JsonataPhp\Symbol && $step->type === "binary" && $step->value === "[") {
                 $step = $step->lhs;
             }
+
             $step->keepArray = true;
             $this->outerInstance->advance("]");
-            return $left;
+            return $symbol;
         } else {
-            $this->lhs = $left;
+            $this->lhs = $symbol;
             $this->rhs = $this->outerInstance->expression(Tokenizer::operators["]"]);
             $this->type = "binary";
             $this->outerInstance->advance("]", true);

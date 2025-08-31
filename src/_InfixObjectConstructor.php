@@ -6,9 +6,9 @@ namespace Monster\JsonataPhp;
 
 class _InfixObjectConstructor extends _Infix
 {
-    public function __construct(Parser $outerInstance, int $bp)
+    public function __construct(Parser $parser, int $bp)
     {
-        parent::__construct($outerInstance, "{", $bp);
+        parent::__construct($parser, "{", $bp);
         $this->construct_args = func_get_args();
     }
 
@@ -17,8 +17,8 @@ class _InfixObjectConstructor extends _Infix
         return $this->outerInstance->objectParser(null);
     }
 
-    public function led(Symbol $left): Symbol
+    public function led(Symbol $symbol): Symbol
     {
-        return $this->outerInstance->objectParser($left);
+        return $this->outerInstance->objectParser($symbol);
     }
 }

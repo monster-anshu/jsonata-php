@@ -6,17 +6,17 @@ namespace Monster\JsonataPhp;
 
 class _InfixDefault extends _Infix
 {
-    public function __construct(Parser $outerInstance, int $bp)
+    public function __construct(Parser $parser, int $bp)
     {
-        parent::__construct($outerInstance, "?:", $bp);
+        parent::__construct($parser, "?:", $bp);
         $this->construct_args = func_get_args();
     }
 
-    public function led(Symbol $left): Symbol
+    public function led(Symbol $symbol): Symbol
     {
         $this->type = "condition";
-        $this->condition = $left;
-        $this->then = $left;
+        $this->condition = $symbol;
+        $this->then = $symbol;
         $this->_else = $this->outerInstance->expression(0);
         return $this;
     }

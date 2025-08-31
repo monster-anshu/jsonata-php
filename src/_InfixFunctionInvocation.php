@@ -6,15 +6,15 @@ namespace Monster\JsonataPhp;
 
 class _InfixFunctionInvocation extends _Infix
 {
-    public function __construct(Parser $outerInstance, int $bp)
+    public function __construct(Parser $parser, int $bp)
     {
-        parent::__construct($outerInstance, "(", $bp);
+        parent::__construct($parser, "(", $bp);
         $this->construct_args = func_get_args();
     }
 
-    public function led(Symbol $left): Symbol
+    public function led(Symbol $symbol): Symbol
     {
-        $this->procedure = $left;
+        $this->procedure = $symbol;
         $this->type = "function";
         $this->arguments = [];
 
@@ -30,9 +30,11 @@ class _InfixFunctionInvocation extends _Infix
                 } else {
                     $this->arguments[] = $this->outerInstance->expression(0);
                 }
+
                 if ($this->outerInstance->node->id !== ",") {
                     break;
                 }
+
                 $this->outerInstance->advance(",");
             }
         }
@@ -40,14 +42,15 @@ class _InfixFunctionInvocation extends _Infix
         $this->outerInstance->advance(")", true);
 
         // lambda function
-        if ($left->type === "name" && ($left->value === "function" || $left->value === "λ")) {
-            foreach ($this->arguments as $arg) {
-                if ($arg->type !== "variable") {
+        if ($symbol->type === "name" && ($symbol->value === "function" || $symbol->value === "λ")) {
+            foreach ($this->arguments as $argument) {
+                if ($argument->type !== "variable") {
                     return $this->outerInstance->handleError(
-                        new JException("S0208", $arg->position, $arg->value)
+                        new JException("S0208", $argument->position, $argument->value)
                     );
                 }
             }
+
             $this->type = "lambda";
 
             if ($this->outerInstance->node->id === "<") {
@@ -63,8 +66,10 @@ class _InfixFunctionInvocation extends _Infix
                     } elseif ($tok->id === "<") {
                         $depth += 1;
                     }
+
                     $sig .= $tok->value;
                 }
+
                 $this->outerInstance->advance(">");
                 $this->signature = new Signature($sig, "lambda");
             }
@@ -85,8 +90,10 @@ class _InfixFunctionInvocation extends _Infix
             if ($this->outerInstance->node->id !== ";") {
                 break;
             }
+
             $this->outerInstance->advance(";");
         }
+
         $this->outerInstance->advance(")", true);
         $this->type = "block";
         $this->expressions = $expressions;

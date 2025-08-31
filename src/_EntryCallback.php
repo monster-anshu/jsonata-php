@@ -6,5 +6,5 @@ namespace Monster\JsonataPhp;
 
 interface _EntryCallback
 {
-    public function callback(Symbol $expr, mixed $input, _Frame $environment): void;
+    public function callback(Symbol $symbol, mixed $input, _Frame $frame): void;
 }

@@ -7,12 +7,14 @@ namespace Monster\JsonataPhp;
 class _JFunction implements _JFunctionCallable, _JFunctionSignatureValidation
 {
     public ?string $functionName = null;
+
     public ?Signature $signature = null;
 
-    private ?\ReflectionMethod $method = null;
+    private ?\ReflectionMethod $reflectionMethod = null;
+
     private mixed $methodInstance = null;
 
-    public function __construct(private readonly _JFunctionCallable|string $function, ?string $signature = null, ?string $className = null, ?string $methodName = null)
+    public function __construct(private readonly _JFunctionCallable|string $function, ?string $signature = null, ?string $className = null)
     {
         if ($signature !== null) {
             // use class name as default, gets overwritten once the function is registered
@@ -39,9 +41,9 @@ class _JFunction implements _JFunctionCallable, _JFunctionSignatureValidation
         $obj->methodInstance = $instance;
 
         try {
-            $obj->method = new \ReflectionMethod($className, $implMethodName);
+            $obj->reflectionMethod = new \ReflectionMethod($className, $implMethodName);
         } catch (\ReflectionException) {
-            error_log("Function not implemented: $functionName impl=$implMethodName");
+            error_log(sprintf('Function not implemented: %s impl=%s', $functionName, $implMethodName));
         }
 
         return $obj;
@@ -52,14 +54,15 @@ class _JFunction implements _JFunctionCallable, _JFunctionSignatureValidation
         try {
             if ($this->function !== null) {
                 return $this->function->call($input, $args);
-            } elseif ($this->method !== null) {
-                return $this->method->invokeArgs($this->methodInstance, $args);
+            } elseif ($this->reflectionMethod !== null) {
+                return $this->reflectionMethod->invokeArgs($this->methodInstance, $args);
             }
-        } catch (\Throwable $e) {
-            if ($e instanceof \RuntimeException) {
-                throw $e;
+        } catch (\Throwable $throwable) {
+            if ($throwable instanceof \RuntimeException) {
+                throw $throwable;
             }
-            throw new \RuntimeException($e->getMessage(), 0, $e);
+
+            throw new \RuntimeException($throwable->getMessage(), 0, $throwable);
         }
 
         return null;
@@ -67,14 +70,15 @@ class _JFunction implements _JFunctionCallable, _JFunctionSignatureValidation
 
     public function validate(mixed $args, mixed $context): mixed
     {
-        if ($this->signature !== null) {
+        if ($this->signature instanceof \Monster\JsonataPhp\Signature) {
             return $this->signature->validate($args, $context);
         }
+
         return $args;
     }
 
     public function getNumberOfArgs(): int
     {
-        return $this->method !== null ? $this->method->getNumberOfParameters() : 0;
+        return $this->reflectionMethod !== null ? $this->reflectionMethod->getNumberOfParameters() : 0;
     }
 }
