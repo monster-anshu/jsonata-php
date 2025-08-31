@@ -56,13 +56,13 @@ class Utils
      */
   public static  function isArray(mixed $arr): bool
     {
+        if($arr instanceof \ArrayObject) {
+            return true;
+        }
         if (!is_array($arr)) {
             return false;
         }
         if (empty($arr)) {
-            return true;
-        }
-        if($arr instanceof \ArrayObject) {
             return true;
         }
         return array_keys($arr) === range(0, count($arr) - 1);

@@ -82,7 +82,11 @@ class Jsonata
     // A simple wrapper to call the main evaluate method.
     public function evaluate(mixed $input)
     {
-        return $this->evaluateWithBindings($input, null);
+        $result = $this->evaluateWithBindings($input, null);
+        if(Utils::isArray($result)) {
+            return (array) $result;
+        }
+        return $result;
     }
 
     /*
@@ -529,7 +533,7 @@ class Jsonata
         } else {
             // flatten the sequence
             foreach ($result as $res) {
-                if (!Utils::isArray($res) || ($res instanceof JList && $res->cons)) {
+                if (!Utils::isArray($res) || ($res->cons ?? 0)) {
                     // it's not an array - just push into the result sequence
                     $resultSequence[] = $res;
                 } else {
