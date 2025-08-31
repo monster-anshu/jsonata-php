@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace Monster\JsonataPhp;
 
 class Utils
@@ -12,7 +13,7 @@ class Utils
 
     public static function init()
     {
-        self::$nullValue = new class {
+        self::$nullValue = new class () {
             public function __toString()
             {
                 return 'null';
@@ -54,9 +55,9 @@ class Utils
      * @param mixed $arr The array to check.
      * @return bool True if the array is a list, false otherwise.
      */
-  public static  function isArray(mixed $arr): bool
+    public static function isArray(mixed $arr): bool
     {
-        if($arr instanceof \ArrayObject) {
+        if ($arr instanceof \ArrayObject) {
             return true;
         }
         if (!is_array($arr)) {
@@ -75,9 +76,9 @@ class Utils
      * @param mixed $arr The array to check.
      * @return bool True if the array is associative, false otherwise.
      */
-   public static function isAssoc(mixed $arr): bool
+    public static function isAssoc(mixed $arr): bool
     {
-        if(!is_array($arr)) {
+        if (!is_array($arr)) {
             return false;
         }
         // A simple, fast check for a non-empty array
@@ -159,9 +160,9 @@ class Utils
         if ($el !== self::$none) {
             // Check if the element is an array with only one item
             if (self::isArray($el) && count($el) === 1) {
-                $sequence[] = reset($el);
+                $sequence->append($el[0]);
             } else {
-                $sequence[] = $el;
+                $sequence->append($el);
             }
         }
 
@@ -293,7 +294,7 @@ class Utils
 
 // PHP doesn't support nested classes in the same way as Python.
 // We'll define the nested classes outside of the main Utils class.
-class JList extends \ArrayObject
+class JList extends \ArrayObject implements \JsonSerializable
 {
     public bool $sequence = false;
     public bool $outerWrapper = false;
@@ -301,7 +302,7 @@ class JList extends \ArrayObject
     public bool $keepSingleton = false;
     public bool $cons = false;
 
-    public function __construct(array $input = [], int $flags = 0, string $iterator_class = "ArrayIterator")
+    public function __construct(array|JList $input = [], int $flags = 0, string $iterator_class = "ArrayIterator")
     {
         parent::__construct($input, $flags, $iterator_class);
     }
@@ -336,6 +337,11 @@ class JList extends \ArrayObject
     public function toArray(): array
     {
         return $this->getArrayCopy();
+    }
+
+    public function jsonSerialize(): array
+    {
+        return $this->toArray();
     }
 }
 

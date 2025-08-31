@@ -1,11 +1,12 @@
 <?php
 
 declare(strict_types=1);
+
 namespace Monster\JsonataPhp;
 
 class Signature
 {
-    const SERIAL_VERSION_UID = -450755246855587271;
+    public const SERIAL_VERSION_UID = -450755246855587271;
 
     public string $signature;
 

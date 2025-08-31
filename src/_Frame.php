@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace Monster\JsonataPhp;
 
 class _Frame
@@ -19,6 +20,7 @@ class _Frame
 
     public function bindFunction(string $name, _JFunction $function): void
     {
+
         $this->bind($name, $function);
         if ($function->signature !== null) {
             $function->signature->setFunctionName($name);
@@ -40,7 +42,6 @@ class _Frame
         if ($this->parent !== null) {
             return $this->parent->lookup($name);
         }
-
         return null;
     }
 

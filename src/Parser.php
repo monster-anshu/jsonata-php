@@ -1,11 +1,11 @@
 <?php
 
 declare(strict_types=1);
+
 namespace Monster\JsonataPhp;
 
 class Parser
 {
-
     public $dbg = false;
     public $source;
     public $recover;
@@ -525,7 +525,7 @@ class Parser
                             }
                         }
 
-                        if (count(array_filter($result->steps, fn($step) => $step->keepArray ?? false)) > 0) {
+                        if (count(array_filter($result->steps, fn ($step) => $step->keepArray ?? false)) > 0) {
                             $result->keepSingletonArray = true;
                         }
 
@@ -598,7 +598,7 @@ class Parser
                         }
                         $result->group = new Symbol($this);
                         $result->group->lhsObject = array_map(
-                            fn($pair) => [$this->processAST($pair[0]), $this->processAST($pair[1])],
+                            fn ($pair) => [$this->processAST($pair[0]), $this->processAST($pair[1])],
                             $expr->rhsObject
                         );
                         $result->group->position = $expr->position;
@@ -873,5 +873,3 @@ class Parser
         return $result;
     }
 }
-
-?>

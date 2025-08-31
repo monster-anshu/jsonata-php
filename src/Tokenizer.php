@@ -1,13 +1,13 @@
 <?php
 
 declare(strict_types=1);
+
 namespace Monster\JsonataPhp;
 
 use Exception;
 
 class Tokenizer
 {
-
     public const operators = [
         "." => 75,
         "[" => 80,
@@ -81,8 +81,9 @@ class Tokenizer
 
     private function isClosingSlash(int $pos): bool
     {
-        if ($pos < 0 || $pos >= $this->length)
+        if ($pos < 0 || $pos >= $this->length) {
             return false;
+        }
         if ($this->path[$pos] === '/' && $this->depth === 0) {
             $backslashCount = 0;
             $i = $pos - 1;
@@ -125,10 +126,12 @@ class Tokenizer
                 $flags = substr($this->path, $flagsStart, $this->position - $flagsStart) . 'g';
 
                 $phpFlags = '';
-                if (str_contains($flags, 'i'))
+                if (str_contains($flags, 'i')) {
                     $phpFlags .= 'i';
-                if (str_contains($flags, 'm'))
+                }
+                if (str_contains($flags, 'm')) {
                     $phpFlags .= 'm';
+                }
 
                 // Escape delimiter '/'
                 $pcre = '/' . str_replace('/', '\/', $pattern) . '/' . $phpFlags;
@@ -174,16 +177,18 @@ class Tokenizer
      */
     public function next(bool $prefix = false): ?JsonataToken
     {
-        if ($this->position >= $this->length)
+        if ($this->position >= $this->length) {
             return null;
+        }
 
         $currentChar = $this->path[$this->position];
 
         // skip whitespace
         while ($this->position < $this->length && str_contains(" \t\n\r", $currentChar)) {
             $this->position++;
-            if ($this->position >= $this->length)
+            if ($this->position >= $this->length) {
                 return null;
+            }
             $currentChar = $this->path[$this->position];
         }
 
@@ -342,7 +347,7 @@ class Tokenizer
     public function tokens()
     {
         $tokens = [];
-        $run = True;
+        $run = true;
         while ($run) {
             $token = $this->next();
             $tokens[] = $token;

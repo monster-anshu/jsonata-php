@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace Monster\JsonataPhp;
 
 class _InfixFieldWildcard extends _Infix

@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace Monster\JsonataPhp;
 
 class _InfixOrderBy extends _Infix

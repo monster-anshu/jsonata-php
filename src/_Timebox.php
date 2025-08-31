@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace Monster\JsonataPhp;
 
 /**
@@ -19,35 +20,35 @@ class _Timebox
         // register callbacks
         $expr->setEvaluateEntryCallback(
             new class ($this) implements _EntryCallback {
-            public function __construct(private readonly _Timebox $tb)
-            {
-            }
-
-            public function callback(Symbol $expr, mixed $input, _Frame $environment): void
-            {
-                if ($environment->isParallelCall) {
-                    return;
+                public function __construct(private readonly _Timebox $tb)
+                {
                 }
-                $this->tb->incrementDepth();
-                $this->tb->checkRunnaway();
-            }
+
+                public function callback(Symbol $expr, mixed $input, _Frame $environment): void
+                {
+                    if ($environment->isParallelCall) {
+                        return;
+                    }
+                    $this->tb->incrementDepth();
+                    $this->tb->checkRunnaway();
+                }
             }
         );
 
         $expr->setEvaluateExitCallback(
             new class ($this) implements _ExitCallback {
-            public function __construct(private readonly _Timebox $tb)
-            {
-            }
-
-            public function callback(Symbol $expr, mixed $input, _Frame $environment, mixed $result): void
-            {
-                if ($environment->isParallelCall) {
-                    return;
+                public function __construct(private readonly _Timebox $tb)
+                {
                 }
-                $this->tb->decrementDepth();
-                $this->tb->checkRunnaway();
-            }
+
+                public function callback(Symbol $expr, mixed $input, _Frame $environment, mixed $result): void
+                {
+                    if ($environment->isParallelCall) {
+                        return;
+                    }
+                    $this->tb->decrementDepth();
+                    $this->tb->checkRunnaway();
+                }
             }
         );
     }

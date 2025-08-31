@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace Monster\JsonataPhp;
 
 class _JFunction implements _JFunctionCallable, _JFunctionSignatureValidation
@@ -11,11 +12,11 @@ class _JFunction implements _JFunctionCallable, _JFunctionSignatureValidation
     private ?\ReflectionMethod $method = null;
     private mixed $methodInstance = null;
 
-    public function __construct(private readonly ?_JFunctionCallable $function, ?string $signature = null)
+    public function __construct(private readonly _JFunctionCallable|string $function, ?string $signature = null, ?string $className = null, ?string $methodName = null)
     {
         if ($signature !== null) {
             // use class name as default, gets overwritten once the function is registered
-            $this->signature = new Signature($signature, $this->function::class);
+            $this->signature = new Signature($signature, $className);
         }
     }
 
@@ -26,7 +27,7 @@ class _JFunction implements _JFunctionCallable, _JFunctionSignatureValidation
         mixed $instance,
         string $implMethodName
     ): self {
-        $obj = new self(new class implements _JFunctionCallable {
+        $obj = new self(new class () implements _JFunctionCallable {
             public function call(mixed $input, array $args): mixed
             {
                 return null; // placeholder, gets replaced by reflection call

@@ -1,11 +1,11 @@
 <?php
 
 declare(strict_types=1);
+
 namespace Monster\JsonataPhp;
 
 class _Infix extends Symbol
 {
-
     public function __construct(Parser $outerInstance, ?string $id, int $bp = 0)
     {
         $bp = $bp !== 0 ? $bp : (Tokenizer::operators[$id] ?? 0);

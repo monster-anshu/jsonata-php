@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 namespace Monster\JsonataPhp;
+
 use RuntimeException;
 
 class DateTimeUtils
@@ -325,7 +326,7 @@ class DateTimeUtils
     {
         self::initialize();
         $parts = preg_split("/,\\s|\\sand\\s|[\\s\\-]/", strtolower($text));
-        $values = array_map(fn($part) => self::$wordValuesLong[$part] ?? null, $parts);
+        $values = array_map(fn ($part) => self::$wordValuesLong[$part] ?? null, $parts);
         $segs = [0];
 
         foreach ($values as $value) {
@@ -500,11 +501,13 @@ class DateTimeUtils
         switch ($primaryFormat) {
             case "A":
                 $format->case_type = 'upper';
+                // no break
             case "a":
                 $format->primary = 'letters';
                 break;
             case "I":
                 $format->case_type = 'upper';
+                // no break
             case "i":
                 $format->primary = 'roman';
                 break;
@@ -589,13 +592,13 @@ class DateTimeUtils
             }
         }
 
-        $indexes = array_map(fn($sep) => $sep->position, $separators);
+        $indexes = array_map(fn ($sep) => $sep->position, $separators);
 
         $gcd = function ($a, $b) use (&$gcd) {
             return $b === 0 ? $a : $gcd($b, $a % $b);
         };
 
-        $factor = array_reduce($indexes, fn($carry, $item) => $gcd($carry, $item), $indexes[0]);
+        $factor = array_reduce($indexes, fn ($carry, $item) => $gcd($carry, $item), $indexes[0]);
 
         for ($i = 1; $i <= count($indexes); $i++) {
             if (!in_array($i * $factor, $indexes)) {
@@ -1026,7 +1029,7 @@ class DateTimeUtils
 
             if (isset($components['Z'])) {
                 $millis -= $components['Z'] * 60 * 1000;
-            } else if (isset($components['z'])) {
+            } elseif (isset($components['z'])) {
                 $millis -= $components['z'] * 60 * 1000;
             }
 
@@ -1050,7 +1053,7 @@ class DateTimeUtils
                         throw new UnsupportedOperationException();
                     }
                 ];
-            } else if ($part->component == 'Z' || $part->component == 'z') {
+            } elseif ($part->component == 'Z' || $part->component == 'z') {
                 $separator = isset($part->integerFormat->groupingSeparators[0]) && count($part->integerFormat->groupingSeparators) == 1 && $part->integerFormat->regular;
                 $regex = "";
                 if ($part->component == 'z') {
@@ -1084,7 +1087,7 @@ class DateTimeUtils
                         return $offsetHours * 60 + $offsetMinutes;
                     }
                 ];
-            } else if ($part->integerFormat != null) {
+            } elseif ($part->integerFormat != null) {
                 $res = self::generateIntegerRegex($part->component, $part->integerFormat);
             } else {
                 $regex = "[a-zA-Z]+";
@@ -1097,7 +1100,7 @@ class DateTimeUtils
                             $lookup[self::$months[$i]] = $i + 1;
                         }
                     }
-                } else if ($part->component == 'F') {
+                } elseif ($part->component == 'F') {
                     for ($i = 1; $i < count(self::$days); $i++) {
                         if (isset($part->width->right)) {
                             $lookup[substr((string) self::$days[$i], 0, $part->width->right)] = $i;
@@ -1105,7 +1108,7 @@ class DateTimeUtils
                             $lookup[self::$days[$i]] = $i;
                         }
                     }
-                } else if ($part->component == 'P') {
+                } elseif ($part->component == 'P') {
                     $lookup["am"] = 0;
                     $lookup["AM"] = 0;
                     $lookup["pm"] = 1;
@@ -1116,7 +1119,7 @@ class DateTimeUtils
                 $res = (object) [
                     'regex' => $regex,
                     'component' => $part->component,
-                    'parser' => fn($value) => $lookup[$value]
+                    'parser' => fn ($value) => $lookup[$value]
                 ];
             }
             $matcher->parts[] = $res;
@@ -1130,18 +1133,18 @@ class DateTimeUtils
         switch ($formatSpec->primary) {
             case 'LETTERS':
                 $regex = $isUpper ? "[A-Z]+" : "[a-z]+";
-                $parser = (fn($value) => self::lettersToDecimal($value, $isUpper ? 'A' : 'a'));
+                $parser = (fn ($value) => self::lettersToDecimal($value, $isUpper ? 'A' : 'a'));
                 break;
             case 'ROMAN':
                 $regex = $isUpper ? "[MDCLXVI]+" : "[mdclxvi]+";
-                $parser = (fn($value) => self::romanToDecimal($isUpper ? $value : strtoupper((string) $value)));
+                $parser = (fn ($value) => self::romanToDecimal($isUpper ? $value : strtoupper((string) $value)));
                 break;
             case 'WORDS':
                 $words = array_keys(self::$wordValues);
                 $words[] = "and";
                 $words[] = "[\\-, ]";
                 $regex = "(?:" . implode("|", array_map('preg_quote', $words)) . ")+";
-                $parser = (fn($value) => self::wordsToNumber(strtolower((string) $value)));
+                $parser = (fn ($value) => self::wordsToNumber(strtolower((string) $value)));
                 break;
             case 'DECIMAL':
                 $regex = "[0-9]+";
@@ -1218,15 +1221,16 @@ class DateTimeUtils
         $current = 0;
         foreach ($parts as $part) {
             $part = trim($part);
-            if (empty($part) || $part == 'and')
+            if (empty($part) || $part == 'and') {
                 continue;
+            }
 
             if (isset(self::$wordValues[$part])) {
                 $value = self::$wordValues[$part];
                 if ($value >= 1000) {
                     $total += $current * $value;
                     $current = 0;
-                } else if ($value >= 100) {
+                } elseif ($value >= 100) {
                     $current *= $value;
                 } else {
                     $current += $value;

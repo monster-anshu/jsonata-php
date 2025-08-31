@@ -1,13 +1,13 @@
 <?php
 
 declare(strict_types=1);
+
 namespace Monster\JsonataPhp;
 
 use ValueError;
 
 final class Functions
 {
-
     /**
      * Count function
      * @param array|null $args - Arguments
@@ -31,7 +31,7 @@ final class Functions
         if ($args === null || count($args) === 0) {
             return null;
         }
-        return max(array_map(fn($n) => (float) $n, $args));
+        return max(array_map(fn ($n) => (float) $n, $args));
     }
 
     /**
@@ -44,7 +44,7 @@ final class Functions
         if ($args === null || count($args) === 0) {
             return null;
         }
-        return min(array_map(fn($n) => (float) $n, $args));
+        return min(array_map(fn ($n) => (float) $n, $args));
     }
 
     /**
@@ -57,7 +57,7 @@ final class Functions
         if ($args === null || count($args) === 0) {
             return null;
         }
-        return array_sum(array_map(fn($n) => (float) $n, $args)) / count($args);
+        return array_sum(array_map(fn ($n) => (float) $n, $args)) / count($args);
     }
 
     /**
@@ -70,7 +70,7 @@ final class Functions
         if ($args === null) {
             return null;
         }
-        return array_sum(array_map(fn($n) => (float) $n, $args));
+        return array_sum(array_map(fn ($n) => (float) $n, $args));
     }
 
     /**
@@ -112,7 +112,7 @@ final class Functions
         }
 
         // Associative arrays = Map
-        if (is_array($arg) && Utils::isAssoc($arg)) {
+        if (Utils::isAssoc($arg)) {
             $parts = [];
             foreach ($arg as $k => $v) {
                 $val = self::stringify($v, $prettify, $indent . "  ");
@@ -125,7 +125,7 @@ final class Functions
         }
 
         // Indexed arrays = List
-        if (is_array($arg)) {
+        if (Utils::isArray($arg)) {
             $parts = [];
             foreach ($arg as $v) {
                 $parts[] = self::stringify($v, $prettify, $indent . "  ");
@@ -520,8 +520,9 @@ final class Functions
      */
     public static function match(?string $str, string $pattern, ?int $limit = null): ?array
     {
-        if ($str === null)
+        if ($str === null) {
             return null;
+        }
         if ($limit !== null && $limit < 0) {
             throw new \InvalidArgumentException("Limit must be non-negative");
         }
@@ -552,8 +553,9 @@ final class Functions
      */
     public static function join(?array $strs, string $separator = ''): ?string
     {
-        if ($strs === null)
+        if ($strs === null) {
             return null;
+        }
         return implode($separator, $strs);
     }
 
@@ -575,24 +577,31 @@ final class Functions
 
     public static function number($arg): ?float
     {
-        if ($arg === null)
+        if ($arg === null) {
             return null;
-        if ($arg === Utils::$none)
+        }
+        if ($arg === Utils::$none) {
             throw new JException("T0410", -1);
+        }
 
-        if (is_numeric($arg))
+        if (is_numeric($arg)) {
             return $arg + 0;
+        }
         if (is_string($arg)) {
-            if (str_starts_with($arg, "0x"))
+            if (str_starts_with($arg, "0x")) {
                 return hexdec(substr($arg, 2));
-            if (str_starts_with($arg, "0B"))
+            }
+            if (str_starts_with($arg, "0B")) {
                 return bindec(substr($arg, 2));
-            if (str_starts_with($arg, "0O"))
+            }
+            if (str_starts_with($arg, "0O")) {
                 return octdec(substr($arg, 2));
+            }
             return (float) $arg;
         }
-        if (is_bool($arg))
+        if (is_bool($arg)) {
             return $arg ? 1 : 0;
+        }
 
         throw new ValueError("Cannot cast to number");
     }
@@ -619,20 +628,24 @@ final class Functions
 
     public static function sqrt(?float $arg): ?float
     {
-        if ($arg === null)
+        if ($arg === null) {
             return null;
-        if ($arg < 0)
+        }
+        if ($arg < 0) {
             throw new JException("D3060", 1, $arg);
+        }
         return sqrt($arg);
     }
 
     public static function power(?float $arg, float $exp): ?float
     {
-        if ($arg === null)
+        if ($arg === null) {
             return null;
+        }
         $result = $arg ** $exp;
-        if (!is_finite($result))
+        if (!is_finite($result)) {
             throw new JException("D3061", 1, $arg, $exp);
+        }
         return $result;
     }
 
@@ -643,23 +656,29 @@ final class Functions
 
     public static function toBoolean($arg): ?bool
     {
-        if ($arg === null)
+        if ($arg === null) {
             return null;
-
-        if (is_array($arg)) {
-            if (count($arg) === 1)
-                return self::toBoolean($arg[0]);
-            return count(array_filter($arg, fn($e) => (bool) $e)) > 0;
         }
 
-        if (is_string($arg))
+        if (Utils::isArray($arg)) {
+            if (count($arg) === 1) {
+                return self::toBoolean($arg[0]);
+            }
+            return count(array_filter((array) $arg, fn ($e) => (bool) $e)) > 0;
+        }
+
+        if (is_string($arg)) {
             return strlen($arg) > 0;
-        if (is_numeric($arg))
+        }
+        if (is_numeric($arg)) {
             return $arg != 0;
-        if (is_bool($arg))
+        }
+        if (is_bool($arg)) {
             return $arg;
-        if (is_object($arg) || is_array($arg))
+        }
+        if (is_object($arg) || is_array($arg)) {
             return !empty((array) $arg);
+        }
 
         return false;
     }
@@ -667,8 +686,9 @@ final class Functions
 
     public static function format_number(?float $value, ?string $picture, ?array $decimal_format = null): ?string
     {
-        if ($decimal_format === null)
+        if ($decimal_format === null) {
             $decimal_format = [];
+        }
 
         $pattern_separator = $decimal_format['pattern-separator'] ?? ';';
         $sub_pictures = explode($pattern_separator, (string) $picture);
@@ -679,20 +699,24 @@ final class Functions
 
         $decimal_separator = $decimal_format['decimal-separator'] ?? '.';
         foreach ($sub_pictures as $p) {
-            if (substr_count($p, $decimal_separator) > 1)
+            if (substr_count($p, $decimal_separator) > 1) {
                 throw new JException('D3081', -1);
+            }
         }
 
         $percent_sign = $decimal_format['percent'] ?? '%';
         $per_mille_sign = $decimal_format['per-mille'] ?? '‰';
 
         foreach ($sub_pictures as $p) {
-            if (substr_count($p, $percent_sign) > 1)
+            if (substr_count($p, $percent_sign) > 1) {
                 throw new JException('D3082', -1);
-            if (substr_count($p, $per_mille_sign) > 1)
+            }
+            if (substr_count($p, $per_mille_sign) > 1) {
                 throw new JException('D3083', -1);
-            if (substr_count($p, $percent_sign) + substr_count($p, $per_mille_sign) > 1)
+            }
+            if (substr_count($p, $percent_sign) + substr_count($p, $per_mille_sign) > 1) {
                 throw new JException('D3084');
+            }
         }
 
         $zero_digit = $decimal_format['zero-digit'] ?? '0';
@@ -711,15 +735,17 @@ final class Functions
         $grouping_separator = $decimal_format['grouping-separator'] ?? ',';
         $adjacent_pattern = '/[' . preg_quote($grouping_separator, '/') . preg_quote($decimal_separator, '/') . ']{2}/';
         foreach ($sub_pictures as $p) {
-            if (preg_match($adjacent_pattern, $p))
+            if (preg_match($adjacent_pattern, $p)) {
                 throw new JException('D3087', -1);
+            }
         }
 
         foreach ($sub_pictures as $s) {
             $parts = explode($decimal_separator, $s);
             foreach ($parts as $x) {
-                if (str_ends_with($x, $grouping_separator))
+                if (str_ends_with($x, $grouping_separator)) {
                     throw new JException('D3088', -1);
+                }
             }
         }
 
@@ -727,12 +753,15 @@ final class Functions
         $exponent_separator = $decimal_format['exponent-separator'] ?? 'e';
         $exponent_pattern = '/(?<=[ ' . preg_quote($active_characters, '/') . '])' . preg_quote($exponent_separator, '/') . '[ ' . preg_quote($active_characters, '/') . ']/';
 
-        if ($value === null)
+        if ($value === null) {
             return null;
-        if (is_nan($value))
+        }
+        if (is_nan($value)) {
             return $decimal_format['NaN'] ?? 'NaN';
-        if (!is_numeric($value))
+        }
+        if (!is_numeric($value)) {
             $value = (float) $value;
+        }
 
         $minus_sign = $decimal_format['minus-sign'] ?? '-';
 
@@ -742,8 +771,9 @@ final class Functions
             $subpic = $sub_pictures[0];
         } else {
             $subpic = $sub_pictures[count($sub_pictures) - 1];
-            if (count($sub_pictures) == 1)
+            if (count($sub_pictures) == 1) {
                 $prefix = $minus_sign;
+            }
         }
 
         // Separate prefix from digits
@@ -794,8 +824,9 @@ final class Functions
             throw new JException('both integer and fractional parts are empty', -1);
         }
 
-        if (is_infinite($value))
+        if (is_infinite($value)) {
             return $prefix . ($decimal_format['infinity'] ?? '∞') . $suffix;
+        }
 
         // Convert to string and format digits
         $chunks = Functions::decimal_to_string($value);
@@ -804,8 +835,9 @@ final class Functions
         $result = Functions::format_digits($chunks[0], $fmt_tokens[0], $digits_family, $optional_digit, $grouping_separator);
 
         if (isset($fmt_tokens[1]) && $fmt_tokens[1] !== '') {
-            if (!isset($chunks[1]))
+            if (!isset($chunks[1])) {
                 $chunks[1] = $zero_digit;
+            }
             $decimal_part = Functions::format_digits($chunks[1], $fmt_tokens[1], $digits_family, $optional_digit, $grouping_separator);
             $result .= $decimal_separator . $decimal_part;
         }
@@ -901,8 +933,9 @@ final class Functions
      */
     public static function not(mixed $arg): ?bool
     {
-        if ($arg === null)
+        if ($arg === null) {
             return null;
+        }
         return !self::toBoolean($arg);
     }
 
@@ -922,10 +955,12 @@ final class Functions
     {
         $func_args = [$arg1];
         $length = self::getFunctionArity($func);
-        if ($length >= 2)
+        if ($length >= 2) {
             $func_args[] = $arg2;
-        if ($length >= 3)
+        }
+        if ($length >= 3) {
             $func_args[] = $arg3;
+        }
         return $func_args;
     }
 
@@ -938,7 +973,9 @@ final class Functions
             $current = Jsonata::current();
             return $current->apply($func, $funcArgs, null, $current->environment);
         } else {
-            return $func->call(null, $funcArgs);
+            /**@var _JFunction */
+            $fn = $func;
+            return $fn->call(null, $funcArgs);
         }
     }
 
@@ -947,14 +984,16 @@ final class Functions
      */
     public static function map(?array $arr, mixed $func): ?array
     {
-        if ($arr === null)
+        if ($arr === null) {
             return null;
+        }
         $result = [];
         foreach ($arr as $i => $arg) {
             $funcArgs = self::hofFuncArgs($func, $arg, $i, $arr);
             $res = self::funcApply($func, $funcArgs);
-            if ($res !== null)
+            if ($res !== null) {
                 $result[] = $res;
+            }
         }
         return $result;
     }
@@ -964,14 +1003,16 @@ final class Functions
      */
     public static function filter(?array $arr, mixed $func): ?array
     {
-        if ($arr === null)
+        if ($arr === null) {
             return null;
+        }
         $result = [];
         foreach ($arr as $i => $entry) {
             $funcArgs = self::hofFuncArgs($func, $entry, $i, $arr);
             $res = self::funcApply($func, $funcArgs);
-            if (self::toBoolean($res))
+            if (self::toBoolean($res)) {
                 $result[] = $entry;
+            }
         }
         return $result;
     }
@@ -982,8 +1023,9 @@ final class Functions
      */
     public static function single(?array $arr, mixed $func = null): mixed
     {
-        if ($arr === null)
+        if ($arr === null) {
             return null;
+        }
         $found = false;
         $result = null;
         foreach ($arr as $i => $entry) {
@@ -1002,8 +1044,9 @@ final class Functions
                 }
             }
         }
-        if (!$found)
+        if (!$found) {
             throw new JException("D3139", -1);
+        }
         return $result;
     }
 
@@ -1213,7 +1256,7 @@ final class Functions
         if (is_bool($value)) {
             return "boolean";
         }
-        if (is_array($value)) {
+        if (Utils::isArray($value)) {
             return "array";
         }
         if (Utils::isFunction($value) || self::isLambda($value)) {
@@ -1239,10 +1282,11 @@ final class Functions
         $result = $arr;
 
         if ($comparator !== null) {
-            usort($result, function ($o1, $o2) use ($comparator) {
-                $swap = self::funcApply($comparator, [$o1, $o2]);
-                return $swap ? 1 : -1;
-            });
+            // TODO: implement usort with comparator
+            // usort($result, function ($o1, $o2) use ($comparator) {
+            //     $swap = self::funcApply($comparator, [$o1, $o2]);
+            //     return $swap ? 1 : -1;
+            // });
         } else {
             sort($result);
         }
@@ -1276,7 +1320,7 @@ final class Functions
         if ($arr === null) {
             return null;
         }
-        if (!is_array($arr) || count($arr) <= 1) {
+        if (!Utils::isArray($arr) || count($arr) <= 1) {
             return $arr;
         }
 
@@ -1331,10 +1375,10 @@ final class Functions
             return $arg1;
         }
 
-        if (!is_array($arg1)) {
+        if (!Utils::isArray($arg1)) {
             $arg1 = Utils::createSequence($arg1);
         }
-        if (!is_array($arg2)) {
+        if (!Utils::isArray($arg2)) {
             $arg2 = new JList([$arg2]);
         }
 
@@ -1369,7 +1413,7 @@ final class Functions
                 $res = self::lookup($item, $key);
                 if ($res !== null) {
                     if (Utils::isArray($res)) {
-                        $result = array_merge($result->toArray(), $res);
+                        $result = array_merge((array) $result, (array) $res);
                     } else {
                         $result[] = $res;
                     }
@@ -1420,7 +1464,7 @@ final class Functions
             $callArgs[] = null;
         }
 
-        if ($nargs > 0 && $params[0]->getType() && $params[0]->getType()->getName() === 'array' && !is_array($callArgs[0])) {
+        if ($nargs > 0 && $params[0]->getType() && $params[0]->getType()->getName() === 'array' && !Utils::isArray($callArgs[0])) {
             if ($callArgs[0] !== null) {
                 $callArgs[0] = [$callArgs[0]];
             }
@@ -1514,18 +1558,24 @@ final class Functions
             if (str_ends_with($picture, ";o")) {
                 $picture = substr($picture, 0, -2);
             }
-            if ($picture === "a")
+            if ($picture === "a") {
                 return DateTimeUtils::lettersToDecimal($value, 'a');
-            if ($picture === "A")
+            }
+            if ($picture === "A") {
                 return DateTimeUtils::lettersToDecimal($value, 'A');
-            if ($picture === "i")
+            }
+            if ($picture === "i") {
                 return DateTimeUtils::romanToDecimal(strtoupper($value));
-            if ($picture === "I")
+            }
+            if ($picture === "I") {
                 return DateTimeUtils::romanToDecimal($value);
-            if ($picture === "w")
+            }
+            if ($picture === "w") {
                 return DateTimeUtils::wordsToLong($value);
-            if (in_array($picture, ["W", "wW", "Ww"], true))
+            }
+            if (in_array($picture, ["W", "wW", "Ww"], true)) {
                 return DateTimeUtils::wordsToLong(strtolower($value));
+            }
             if (str_contains($picture, ":")) {
                 $value = str_replace(":", ",", $value);
                 $picture = str_replace(":", ",", $picture);

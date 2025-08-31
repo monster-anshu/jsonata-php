@@ -1,8 +1,8 @@
 <?php
 
 declare(strict_types=1);
-namespace Monster\JsonataPhp;
 
+namespace Monster\JsonataPhp;
 
 interface _ExitCallback
 {

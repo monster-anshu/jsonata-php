@@ -1,8 +1,8 @@
 <?php
 
 declare(strict_types=1);
-namespace Monster\JsonataPhp;
 
+namespace Monster\JsonataPhp;
 
 class _InfixObjectConstructor extends _Infix
 {

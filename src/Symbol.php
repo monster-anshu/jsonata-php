@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace Monster\JsonataPhp;
 
 class Symbol implements \JsonSerializable, \Stringable
@@ -114,7 +115,7 @@ class Symbol implements \JsonSerializable, \Stringable
                 $cl->$key = $value->clone();
             } elseif (is_array($value)) {
                 // Recursively clone arrays containing Symbol objects
-                $cl->$key = array_map(fn($item) => $item instanceof Symbol ? $item->clone() : $item, $value);
+                $cl->$key = array_map(fn ($item) => $item instanceof Symbol ? $item->clone() : $item, $value);
             } else {
                 $cl->$key = $value;
             }
