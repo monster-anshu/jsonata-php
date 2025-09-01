@@ -6,5 +6,11 @@ namespace Monster\JsonataPhp;
 
 interface _ExitCallback
 {
-    public function callback(Symbol $symbol, mixed $input, _Frame $frame, mixed $result): void;
+    /**
+     * @param \Monster\JsonataPhp\Symbol $symbol
+     * @param mixed $input
+     * @param \Monster\JsonataPhp\_Frame $frame
+     * @param mixed $result
+     */
+    public function callback($symbol, $input, $frame, $result): void;
 }

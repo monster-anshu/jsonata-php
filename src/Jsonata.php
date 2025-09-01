@@ -8,15 +8,34 @@ use Exception;
 
 class Jsonata
 {
-    public readonly Parser $parser;
-    public ?_Frame $environment = null;
+    /**
+     * @readonly
+     * @var \Monster\JsonataPhp\Parser
+     */
+    public $parser;
+    /**
+     * @var \Monster\JsonataPhp\_Frame|null
+     */
+    public $environment;
 
-    public static ?_Frame $staticFrame = null;
+    /**
+     * @var \Monster\JsonataPhp\_Frame|null
+     */
+    public static $staticFrame;
      // equivalent to: static Frame staticFrame;
-    public ?Symbol $ast;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $ast;
 
-    private ?array $errors = null;
-    private bool $validateInput = true;
+    /**
+     * @var mixed[]|null
+     */
+    private $errors;
+    /**
+     * @var bool
+     */
+    private $validateInput = true;
 
     private function createFrame(?_Frame $frame = null): _Frame
     {
@@ -28,7 +47,10 @@ class Jsonata
         return new _Frame(null);
     }
 
-    private static ?Symbol $chainAST = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    private static $chainAST;
 
     private function chainAST(): Symbol
     {
@@ -70,12 +92,21 @@ class Jsonata
         // $this->environment->bind("millis", new FunctionDefinition(...));
     }
 
-    public static function defineFunction(string $func, string $signature)
+    /**
+     * @param string $func
+     * @param string $signature
+     */
+    public static function defineFunction($func, $signature)
     {
         return self::defineFunctionWithImpl($func, $signature, $func);
     }
 
-    public static function defineFunctionWithImpl(string $func, string $signature, string $funcImplMethod)
+    /**
+     * @param string $func
+     * @param string $signature
+     * @param string $funcImplMethod
+     */
+    public static function defineFunctionWithImpl($func, $signature, $funcImplMethod)
     {
         $jFunction = new _JFunction($func, $signature, Functions::class, $funcImplMethod);
         self::$staticFrame->bind($func, $jFunction);
@@ -154,7 +185,10 @@ class Jsonata
     }
 
 
-    private static Jsonata $jsonata;
+    /**
+     * @var \Monster\JsonataPhp\Jsonata
+     */
+    private static $jsonata;
 
     public static function current()
     {
@@ -164,7 +198,10 @@ class Jsonata
 
 
     // A simple wrapper to call the main evaluate method.
-    public function evaluate(mixed $input)
+    /**
+     * @param mixed $input
+     */
+    public function evaluate($input)
     {
         $result = $this->evaluateWithBindings($input, null);
         if (Utils::isArray($result)) {
@@ -235,7 +272,7 @@ class Jsonata
      * @param _Frame|null $frame Environment
      * @return mixed Evaluated input data
      */
-    public function evaluateAst(Symbol $symbol, mixed $input, ?_Frame $frame = null): mixed
+    public function evaluateAst($symbol, $input, $frame = null)
     {
         // Thread safety:
         // Make sure each evaluate is executed on an instance per thread
@@ -254,7 +291,10 @@ class Jsonata
         return $this;
     }
 
-    public function populateMessage(Exception $exception): Exception
+    /**
+     * @param \Exception $exception
+     */
+    public function populateMessage($exception): Exception
     {
         // The original Java code has commented-out logic, so this simply returns the exception.
         // If the commented logic were to be ported, it would use regular expressions
@@ -265,8 +305,10 @@ class Jsonata
     /**
      * Placeholder for the actual evaluator.
      * Equivalent to Java's private _evaluate(...)
+     * @param mixed $input
+     * @return mixed
      */
-    private function _evaluate(Symbol $symbol, mixed $input, _Frame $frame): mixed
+    private function _evaluate(Symbol $symbol, $input, _Frame $frame)
     {
         $result = null;
         $this->environment = $frame;
@@ -386,7 +428,7 @@ class Jsonata
      * @param _Frame $frame Environment
      * @return mixed              Evaluated input data
      */
-    private function evaluatePath(Symbol $symbol, mixed $input, _Frame $frame): mixed
+    private function evaluatePath(Symbol $symbol, $input, _Frame $frame)
     {
         // expr is an array of steps
         // if the first step is a variable reference ($...), including root reference ($$),
@@ -479,7 +521,7 @@ class Jsonata
      * @param _Frame $frame Environment
      * @return array|JList           Evaluated input data
      */
-    private function evaluateTupleStep(Symbol $symbol, array|JList|null $input, array|JList|null $tupleBindings, _Frame $frame): array|JList
+    private function evaluateTupleStep(Symbol $symbol, $input, $tupleBindings, _Frame $frame)
     {
         $result = null;
 
@@ -519,8 +561,12 @@ class Jsonata
         if ($tupleBindings === null) {
             $tupleBindings = array_values(
                 array_map(
-                    fn ($item) => ['@' => $item],
-                    array_filter($input, fn ($item) => $item !== null)
+                    function ($item) {
+                        return ['@' => $item];
+                    },
+                    array_filter($input, function ($item) {
+                        return $item !== null;
+                    })
                 )
             );
         }
@@ -577,7 +623,7 @@ class Jsonata
      * @param bool $lastStep Flag the last step in a path
      * @return mixed Evaluated input data
      */
-    private function evaluateStep(Symbol $symbol, array|JList $input, _Frame $frame, bool $lastStep): mixed
+    private function evaluateStep(Symbol $symbol, $input, _Frame $frame, bool $lastStep)
     {
         $result = null;
 
@@ -644,7 +690,7 @@ class Jsonata
      * @return array|JList Ordered sequence
      * @throws JException
      */
-    private function evaluateSortExpression(Symbol $symbol, array|JList $input, _Frame $frame): array|JList
+    private function evaluateSortExpression(Symbol $symbol, $input, _Frame $frame)
     {
         // evaluate the lhs, then sort the results in order according to rhs expression
         $lhs = $input;
@@ -738,8 +784,10 @@ class Jsonata
      *
      * @param Symbol[] $stages
      * @throws JException
+     * @param mixed $input
+     * @return mixed
      */
-    private function evaluateStages(array $stages, mixed $input, _Frame $frame): mixed
+    private function evaluateStages(array $stages, $input, _Frame $frame)
     {
         $result = $input;
 
@@ -770,15 +818,18 @@ class Jsonata
      * @param mixed $input Input data
      * @param _Frame $frame Environment
      * @throws JException
+     * @return mixed
      */
-    private function evaluateBinary(Symbol $symbol, mixed $input, _Frame $frame): mixed
+    private function evaluateBinary(Symbol $symbol, $input, _Frame $frame)
     {
         $lhs = $this->evaluateAst($symbol->lhs, $input, $frame);
         $op = (string) $symbol->value;
 
         if ($op === "and" || $op === "or") {
             // defer evaluation of RHS to allow short-circuiting
-            $evalrhs = (fn () => $this->evaluateAst($symbol->rhs, $input, $frame));
+            $evalrhs = (function () use ($symbol, $input, $frame) {
+                return $this->evaluateAst($symbol->rhs, $input, $frame);
+            });
 
             try {
                 return $this->evaluateBooleanExpression($lhs, $evalrhs, $op);
@@ -793,15 +844,30 @@ class Jsonata
 
         $rhs = $this->evaluateAst($symbol->rhs, $input, $frame);
 
-        return match ($op) {
-            "+", "-", "*", "/", "%" => $this->evaluateNumericExpression($lhs, $rhs, $op),
-            "=", "!=" => $this->evaluateEqualityExpression($lhs, $rhs, $op),
-            "<", "<=", ">", ">=" => $this->evaluateComparisonExpression($lhs, $rhs, $op),
-            "&" => $this->evaluateStringConcat($lhs, $rhs),
-            ".." => $this->evaluateRangeExpression($lhs, $rhs),
-            "in" => $this->evaluateIncludesExpression($lhs, $rhs),
-            default => throw new JException("Unexpected operator " . $op, $symbol->position),
-        };
+        switch ($op) {
+            case "+":
+            case "-":
+            case "*":
+            case "/":
+            case "%":
+                return $this->evaluateNumericExpression($lhs, $rhs, $op);
+            case "=":
+            case "!=":
+                return $this->evaluateEqualityExpression($lhs, $rhs, $op);
+            case "<":
+            case "<=":
+            case ">":
+            case ">=":
+                return $this->evaluateComparisonExpression($lhs, $rhs, $op);
+            case "&":
+                return $this->evaluateStringConcat($lhs, $rhs);
+            case "..":
+                return $this->evaluateRangeExpression($lhs, $rhs);
+            case "in":
+                return $this->evaluateIncludesExpression($lhs, $rhs);
+            default:
+                throw new JException("Unexpected operator " . $op, $symbol->position);
+        }
     }
 
 
@@ -813,22 +879,26 @@ class Jsonata
      * @param string   $op       Operator ("and" / "or")
      * @throws \Exception
      */
-    private function evaluateBooleanExpression(mixed $lhs, callable $evalrhs, string $op): bool
+    private function evaluateBooleanExpression($lhs, callable $evalrhs, string $op): bool
     {
         $lBool = static::boolize($lhs);
 
-        return match ($op) {
-            // RHS is evaluated only if needed
-            "and" => $lBool && static::boolize($evalrhs()),
-            // RHS is evaluated only if needed
-            "or" => $lBool || static::boolize($evalrhs()),
-            default => throw new \InvalidArgumentException('Unsupported boolean operator: ' . $op),
-        };
+        switch ($op) {
+            case "and":
+                return $lBool && static::boolize($evalrhs());
+            case "or":
+                return $lBool || static::boolize($evalrhs());
+            default:
+                throw new \InvalidArgumentException('Unsupported boolean operator: ' . $op);
+        }
     }
 
 
 
-    public static function boolize(mixed $value): bool
+    /**
+     * @param mixed $value
+     */
+    public static function boolize($value): bool
     {
         $booledValue = Functions::toBoolean($value);
         return $booledValue ?? false;
@@ -844,7 +914,7 @@ class Jsonata
      * @return mixed Result (number or null)
      * @throws JException
      */
-    private function evaluateNumericExpression(mixed $lhs, mixed $rhs, string $op): mixed
+    private function evaluateNumericExpression($lhs, $rhs, string $op)
     {
         if ($lhs !== null && !Utils::isNumeric($lhs)) {
             throw new JException("T2001", -1, [$op, $lhs]);
@@ -862,14 +932,25 @@ class Jsonata
         $lhsVal = (float) $lhs;
         $rhsVal = (float) $rhs;
 
-        $result = match ($op) {
-            '+' => $lhsVal + $rhsVal,
-            '-' => $lhsVal - $rhsVal,
-            '*' => $lhsVal * $rhsVal,
-            '/' => $rhsVal == 0.0 ? NAN : $lhsVal / $rhsVal,
-            '%' => fmod($lhsVal, $rhsVal),
-            default => throw new JException("Unexpected operator " . $op, -1),
-        };
+        switch ($op) {
+            case '+':
+                $result = $lhsVal + $rhsVal;
+                break;
+            case '-':
+                $result = $lhsVal - $rhsVal;
+                break;
+            case '*':
+                $result = $lhsVal * $rhsVal;
+                break;
+            case '/':
+                $result = $rhsVal == 0.0 ? NAN : $lhsVal / $rhsVal;
+                break;
+            case '%':
+                $result = fmod($lhsVal, $rhsVal);
+                break;
+            default:
+                throw new JException("Unexpected operator " . $op, -1);
+        }
 
         return Utils::convertNumber($result);
     }
@@ -883,7 +964,7 @@ class Jsonata
      * @param string $op - operator ("=" or "!=")
      * @return bool Result
      */
-    private function evaluateEqualityExpression(mixed $lhs, mixed $rhs, string $op): bool
+    private function evaluateEqualityExpression($lhs, $rhs, string $op): bool
     {
         $ltype = $lhs !== null ? gettype($lhs) : null;
         $rtype = $rhs !== null ? gettype($rhs) : null;
@@ -902,11 +983,14 @@ class Jsonata
             $rhs = (float) $rhs;
         }
 
-        return match ($op) {
-            '=' => $lhs == $rhs,
-            '!=' => $lhs != $rhs,
-            default => throw new JException("Unexpected operator " . $op, -1),
-        };
+        switch ($op) {
+            case '=':
+                return $lhs == $rhs;
+            case '!=':
+                return $lhs != $rhs;
+            default:
+                throw new JException("Unexpected operator " . $op, -1);
+        }
     }
 
 
@@ -918,7 +1002,7 @@ class Jsonata
      * @param string $op - operator ("<", "<=", ">", ">=")
      * @throws JException
      */
-    private function evaluateComparisonExpression(mixed $lhs, mixed $rhs, string $op): ?bool
+    private function evaluateComparisonExpression($lhs, $rhs, string $op): ?bool
     {
         $result = null;
 
@@ -946,14 +1030,22 @@ class Jsonata
             throw new JException("T2009", 0, $lhs, $rhs);
         }
 
-        // perform comparison
-        $result = match ($op) {
-            '<' => $lhs < $rhs,
-            '<=' => $lhs <= $rhs,
-            '>' => $lhs > $rhs,
-            '>=' => $lhs >= $rhs,
-            default => throw new JException("Unexpected operator " . $op, -1),
-        };
+        switch ($op) {
+            case '<':
+                $result = $lhs < $rhs;
+                break;
+            case '<=':
+                $result = $lhs <= $rhs;
+                break;
+            case '>':
+                $result = $lhs > $rhs;
+                break;
+            case '>=':
+                $result = $lhs >= $rhs;
+                break;
+            default:
+                throw new JException("Unexpected operator " . $op, -1);
+        }
 
         return $result;
     }
@@ -966,7 +1058,7 @@ class Jsonata
      * @param mixed $lhs - LHS value
      * @param mixed $rhs - RHS value
      */
-    private function evaluateStringConcat(mixed $lhs, mixed $rhs): string
+    private function evaluateStringConcat($lhs, $rhs): string
     {
         $lstr = "";
         $rstr = "";
@@ -992,7 +1084,7 @@ class Jsonata
      * @return array|null Resultant array or null
      * @throws JException
      */
-    private function evaluateRangeExpression(mixed $lhs, mixed $rhs): ?array
+    private function evaluateRangeExpression($lhs, $rhs): ?array
     {
         $result = null;
 
@@ -1063,8 +1155,9 @@ class Jsonata
     /**
      * Evaluate unary expression against input data
      * @throws JException
+     * @param mixed $input
      */
-    private function evaluateUnary(Symbol $symbol, mixed $input, _Frame $frame)
+    private function evaluateUnary(Symbol $symbol, $input, _Frame $frame)
     {
         $result = null;
 
@@ -1354,7 +1447,7 @@ class Jsonata
      * @return mixed Evaluated input data
      * @throws JException
      */
-    public function evaluateFunction(Symbol $symbol, $input, _Frame $frame, $applytoContext)
+    public function evaluateFunction($symbol, $input, $frame, $applytoContext)
     {
         $result = null;
 
@@ -1419,7 +1512,11 @@ class Jsonata
 
 
 
-    private function evaluateVariable(Symbol $symbol, mixed $input, _Frame $frame): mixed
+    /**
+     * @param mixed $input
+     * @return mixed
+     */
+    private function evaluateVariable(Symbol $symbol, $input, _Frame $frame)
     {
         $result = null;
 
@@ -1436,7 +1533,10 @@ class Jsonata
         return $result;
     }
 
-    private function evaluateLambda(Symbol $symbol, mixed $input, _Frame $frame): Symbol
+    /**
+     * @param mixed $input
+     */
+    private function evaluateLambda(Symbol $symbol, $input, _Frame $frame): Symbol
     {
         // create a closure-like object
         $procedure = new Symbol($this->parser);
@@ -1460,7 +1560,11 @@ class Jsonata
         return $procedure;
     }
 
-    private function evaluatePartialApplication(Symbol $symbol, mixed $input, _Frame $frame): mixed
+    /**
+     * @param mixed $input
+     * @return mixed
+     */
+    private function evaluatePartialApplication(Symbol $symbol, $input, _Frame $frame)
     {
         $result = null;
 
@@ -1566,7 +1670,11 @@ class Jsonata
 
 
 
-    private function evaluateApplyExpression(Symbol $symbol, mixed $input, _Frame $frame): mixed
+    /**
+     * @param mixed $input
+     * @return mixed
+     */
+    private function evaluateApplyExpression(Symbol $symbol, $input, _Frame $frame)
     {
         $result = null;
 
@@ -1602,7 +1710,10 @@ class Jsonata
     }
 
 
-    private function isFunctionLike(mixed $o): bool
+    /**
+     * @param mixed $o
+     */
+    private function isFunctionLike($o): bool
     {
         return Utils::isFunction($o) || Functions::isLambda($o) || $o instanceof _Pattern;
     }
@@ -1662,7 +1773,12 @@ class Jsonata
         return new _JFunction($transformCallable, "<(oa):o>");
     }
 
-    private function evaluateFilter(object $_predicate, mixed $input, _Frame $frame): array|JList
+    /**
+     * @return mixed[]|\Monster\JsonataPhp\JList
+     * @param mixed $input
+     * @param object $_predicate
+     */
+    private function evaluateFilter($_predicate, $input, _Frame $frame)
     {
         $predicate = $_predicate; // Symbol
         $results = Utils::createSequence();
@@ -1728,7 +1844,10 @@ class Jsonata
         return $results;
     }
 
-    private function evaluateGroupExpression(Symbol $symbol, mixed $_input, _Frame $frame): array
+    /**
+     * @param mixed $_input
+     */
+    private function evaluateGroupExpression(Symbol $symbol, $_input, _Frame $frame): array
     {
         $result = [];
         $groups = [];
@@ -1803,7 +1922,11 @@ class Jsonata
         return $result;
     }
 
-    private function reduceTupleStream(mixed $_tupleStream): array|object
+    /**
+     * @return mixed[]|object
+     * @param mixed $_tupleStream
+     */
+    private function reduceTupleStream($_tupleStream)
     {
         if (!Utils::isArray($_tupleStream)) {
             return $_tupleStream;

@@ -12,7 +12,10 @@ class Parser
 
     public $recover;
 
-    public ?Symbol $node = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $node;
 
     public $lexer;
 
@@ -23,9 +26,15 @@ class Parser
     /** @var Symbol[] */
     public $ancestry = [];
 
-    public int $ancestorLabel = 0;
+    /**
+     * @var int
+     */
+    public $ancestorLabel = 0;
 
-    public int $ancestorIndex = 0;
+    /**
+     * @var int
+     */
+    public $ancestorIndex = 0;
 
     public function __construct()
     {
@@ -82,7 +91,10 @@ class Parser
 
 
 
-    public function tailCallOptimize(?Symbol $symbol): Symbol
+    /**
+     * @param \Monster\JsonataPhp\Symbol|null $symbol
+     */
+    public function tailCallOptimize($symbol): Symbol
     {
         $result = null;
 
@@ -212,7 +224,10 @@ class Parser
         return $left;
     }
 
-    public function handleError(JException $jException)
+    /**
+     * @param \Monster\JsonataPhp\JException $jException
+     */
+    public function handleError($jException)
     {
         if ($this->recover) {
             $jException->remaining = $this->remainingTokens();
@@ -244,7 +259,10 @@ class Parser
         return $remaining;
     }
 
-    public function register(Symbol $symbol)
+    /**
+     * @param \Monster\JsonataPhp\Symbol $symbol
+     */
+    public function register($symbol)
     {
         $s = $this->symbolTable[$symbol->id] ?? null;
         if ($s !== null) {
@@ -261,7 +279,7 @@ class Parser
                 print_r(
                     "Symbol in table "
                     . $symbol->id . " "
-                    . $s::class . " -> "
+                    . get_class($s) . " -> "
                     . sprintf(' s.lbp -> %d s.bp -> %d', $s->lbp, $s->bp)
                     // . get_class($t)
                     . PHP_EOL
@@ -277,7 +295,7 @@ class Parser
      * @param Symbol|null $symbol The symbol on the left-hand side, if this is an infix operation.
      * @return Symbol The resulting Symbol node for the object.
      */
-    public function objectParser(?Symbol $symbol): Symbol
+    public function objectParser($symbol): Symbol
     {
         // If $left is not null, it's an infix operation; otherwise, it's a prefix one.
         $res = $symbol instanceof \Monster\JsonataPhp\Symbol ? new _Infix($this, "{") : new _Prefix($this, "{");
@@ -332,7 +350,7 @@ class Parser
      * @return Symbol The modified slot after inspection.
      * @throws JException If an unexpected node type is encountered.
      */
-    public function seekParent(Symbol $node, Symbol $slot): Symbol
+    public function seekParent($node, $slot): Symbol
     {
         switch ($node->type) {
             case "name":
@@ -552,7 +570,9 @@ class Parser
                             }
                         }
 
-                        if (array_filter($result->steps, fn ($step) => $step->keepArray ?? false) !== []) {
+                        if (array_filter($result->steps, function ($step) {
+                            return $step->keepArray ?? false;
+                        }) !== []) {
                             $result->keepSingletonArray = true;
                         }
 
@@ -586,9 +606,9 @@ class Parser
                         }
 
                         if ($type === 'stages') {
-                            $step->stages ??= [];
+                            $step->stages = $step->stages ?? [];
                         } else {
-                            $step->predicate ??= [];
+                            $step->predicate = $step->predicate ?? [];
                         }
 
                         $predicate = $this->processAST($expr->rhs);
@@ -629,7 +649,9 @@ class Parser
 
                         $result->group = new Symbol($this);
                         $result->group->lhsObject = array_map(
-                            fn ($pair) => [$this->processAST($pair[0]), $this->processAST($pair[1])],
+                            function ($pair) {
+                                return [$this->processAST($pair[0]), $this->processAST($pair[1])];
+                            },
                             $expr->rhsObject
                         );
                         $result->group->position = $expr->position;

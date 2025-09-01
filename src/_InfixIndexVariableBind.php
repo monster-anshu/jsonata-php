@@ -12,7 +12,10 @@ class _InfixIndexVariableBind extends _Infix
         $this->construct_args = func_get_args();
     }
 
-    public function led(Symbol $symbol): Symbol
+    /**
+     * @param \Monster\JsonataPhp\Symbol $symbol
+     */
+    public function led($symbol): Symbol
     {
         $this->lhs = $symbol;
         $this->rhs = $this->outerInstance->expression(Tokenizer::operators["#"]);

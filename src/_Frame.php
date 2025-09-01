@@ -6,20 +6,40 @@ namespace Monster\JsonataPhp;
 
 class _Frame
 {
-    private array $bindings = [];
+    /**
+     * @readonly
+     * @var \Monster\JsonataPhp\_Frame|null
+     */
+    private $frame;
+    /**
+     * @var mixed[]
+     */
+    private $bindings = [];
 
-    public bool $isParallelCall = false;
+    /**
+     * @var bool
+     */
+    public $isParallelCall = false;
 
-    public function __construct(private readonly ?_Frame $frame = null)
+    public function __construct(?_Frame $frame = null)
     {
+        $this->frame = $frame;
     }
 
-    public function bind(string $name, mixed $val): void
+    /**
+     * @param string $name
+     * @param mixed $val
+     */
+    public function bind($name, $val): void
     {
         $this->bindings[$name] = $val;
     }
 
-    public function bindFunction(string $name, _JFunction $jFunction): void
+    /**
+     * @param string $name
+     * @param \Monster\JsonataPhp\_JFunction $jFunction
+     */
+    public function bindFunction($name, $jFunction): void
     {
 
         $this->bind($name, $jFunction);
@@ -28,12 +48,20 @@ class _Frame
         }
     }
 
-    public function bindLambda(string $name, callable $lambda): void
+    /**
+     * @param string $name
+     * @param callable $lambda
+     */
+    public function bindLambda($name, $lambda): void
     {
         $this->bind($name, $lambda);
     }
 
-    public function lookup(string $name): mixed
+    /**
+     * @param string $name
+     * @return mixed
+     */
+    public function lookup($name)
     {
         // Important: if we have a null value, return it
         if (array_key_exists($name, $this->bindings)) {
@@ -53,17 +81,23 @@ class _Frame
      * @param int $timeout Timeout in millis
      * @param int $maxRecursionDepth Max recursion depth
      */
-    public function setRuntimeBounds(int $timeout, int $maxRecursionDepth): void
+    public function setRuntimeBounds($timeout, $maxRecursionDepth): void
     {
         new _Timebox($this, $timeout, $maxRecursionDepth);
     }
 
-    public function setEvaluateEntryCallback(_EntryCallback $entryCallback): void
+    /**
+     * @param \Monster\JsonataPhp\_EntryCallback $entryCallback
+     */
+    public function setEvaluateEntryCallback($entryCallback): void
     {
         $this->bind("__evaluate_entry", $entryCallback);
     }
 
-    public function setEvaluateExitCallback(_ExitCallback $exitCallback): void
+    /**
+     * @param \Monster\JsonataPhp\_ExitCallback $exitCallback
+     */
+    public function setEvaluateExitCallback($exitCallback): void
     {
         $this->bind("__evaluate_exit", $exitCallback);
     }

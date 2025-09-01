@@ -44,7 +44,10 @@ class _InfixArrayConstructor extends _Infix
         return $this;
     }
 
-    public function led(Symbol $symbol): Symbol
+    /**
+     * @param \Monster\JsonataPhp\Symbol $symbol
+     */
+    public function led($symbol): Symbol
     {
         if ($this->outerInstance->node->id === "]") {
             $step = $symbol;

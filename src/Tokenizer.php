@@ -8,6 +8,10 @@ use Exception;
 
 class Tokenizer
 {
+    /**
+     * @var string
+     */
+    private $path;
     public const operators = [
         "." => 75,
         "[" => 80,
@@ -61,18 +65,32 @@ class Tokenizer
         "t" => "\t"
     ];
 
-    private int $position = 0;
+    /**
+     * @var int
+     */
+    private $position = 0;
 
-    private readonly int $length;
+    /**
+     * @readonly
+     * @var int
+     */
+    private $length;
 
-    private int $depth = 0;
+    /**
+     * @var int
+     */
+    private $depth = 0;
 
-    public function __construct(private string $path)
+    public function __construct(string $path)
     {
+        $this->path = $path;
         $this->length = strlen($this->path);
     }
 
-    private function create(string $type, mixed $value): JsonataToken
+    /**
+     * @param mixed $value
+     */
+    private function create(string $type, $value): JsonataToken
     {
         return new JsonataToken(
             $type,
@@ -133,11 +151,11 @@ class Tokenizer
                 $flags = substr($this->path, $flagsStart, $this->position - $flagsStart) . 'g';
 
                 $phpFlags = '';
-                if (str_contains($flags, 'i')) {
+                if (strpos($flags, 'i') !== false) {
                     $phpFlags .= 'i';
                 }
 
-                if (str_contains($flags, 'm')) {
+                if (strpos($flags, 'm') !== false) {
                     $phpFlags .= 'm';
                 }
 
@@ -185,8 +203,9 @@ class Tokenizer
     /**
      * Returns next token, or null at end.
      * @throws JException
+     * @param bool $prefix
      */
-    public function next(bool $prefix = false): ?JsonataToken
+    public function next($prefix = false): ?JsonataToken
     {
         if ($this->position >= $this->length) {
             return null;
@@ -195,7 +214,7 @@ class Tokenizer
         $currentChar = $this->path[$this->position];
 
         // skip whitespace
-        while ($this->position < $this->length && str_contains(" \t\n\r", $currentChar)) {
+        while ($this->position < $this->length && strpos(" \t\n\r", $currentChar) !== false) {
             ++$this->position;
             if ($this->position >= $this->length) {
                 return null;
@@ -331,7 +350,7 @@ class Tokenizer
         while (true) {
             $ch = ($i < $this->length) ? $this->path[$i] : "\0";
             // stop at end, whitespace, or any single-char operator
-            if ($i === $this->length || str_contains(" \t\n\r", $ch) || array_key_exists($ch, self::operators)) {
+            if ($i === $this->length || strpos(" \t\n\r", $ch) !== false || array_key_exists($ch, self::operators)) {
                 if ($this->path[$this->position] === '$') {
                     // variable
                     $name = substr($this->path, $this->position + 1, $i - ($this->position + 1));

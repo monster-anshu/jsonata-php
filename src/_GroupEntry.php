@@ -6,7 +6,13 @@ namespace Monster\JsonataPhp;
 
 class _GroupEntry
 {
-    public mixed $data;
+    /**
+     * @var mixed
+     */
+    public $data;
 
-    public int $exprIndex;
+    /**
+     * @var int
+     */
+    public $exprIndex;
 }

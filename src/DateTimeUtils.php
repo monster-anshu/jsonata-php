@@ -72,17 +72,35 @@ class DateTimeUtils
         "Trillion"
     ];
 
-    private static array $wordValues = [];
+    /**
+     * @var mixed[]
+     */
+    private static $wordValues = [];
 
-    private static array $wordValuesLong = [];
+    /**
+     * @var mixed[]
+     */
+    private static $wordValuesLong = [];
 
-    private static array $romanNumerals = [];
+    /**
+     * @var mixed[]
+     */
+    private static $romanNumerals = [];
 
-    private static array $romanValues = [];
+    /**
+     * @var mixed[]
+     */
+    private static $romanValues = [];
 
-    private static array $suffix123 = [];
+    /**
+     * @var mixed[]
+     */
+    private static $suffix123 = [];
 
-    private static array $decimalGroups = [
+    /**
+     * @var mixed[]
+     */
+    private static $decimalGroups = [
         0x30,
         0x0660,
         0x06F0,
@@ -122,9 +140,15 @@ class DateTimeUtils
         0xFF10
     ];
 
-    private static array $defaultPresentationModifiers = [];
+    /**
+     * @var mixed[]
+     */
+    private static $defaultPresentationModifiers = [];
 
-    private static array $days = [
+    /**
+     * @var mixed[]
+     */
+    private static $days = [
         "",
         "Monday",
         "Tuesday",
@@ -135,7 +159,10 @@ class DateTimeUtils
         "Sunday"
     ];
 
-    private static array $months = [
+    /**
+     * @var mixed[]
+     */
+    private static $months = [
         "January",
         "February",
         "March",
@@ -150,9 +177,15 @@ class DateTimeUtils
         "December"
     ];
 
-    private static ?object $iso8601Spec = null;
+    /**
+     * @var object|null
+     */
+    private static $iso8601Spec;
 
-    private static bool $initialized = false;
+    /**
+     * @var bool
+     */
+    private static $initialized = false;
 
     private static function initialize(): void
     {
@@ -268,7 +301,11 @@ class DateTimeUtils
         ];
     }
 
-    public static function numberToWords(int|string $value, bool $ordinal): string
+    /**
+     * @param int|string $value
+     * @param bool $ordinal
+     */
+    public static function numberToWords($value, $ordinal): string
     {
         self::initialize();
         return self::lookup((int) $value, false, $ordinal);
@@ -324,11 +361,16 @@ class DateTimeUtils
 
 
 
-    public static function wordsToLong(string $text): int
+    /**
+     * @param string $text
+     */
+    public static function wordsToLong($text): int
     {
         self::initialize();
         $parts = preg_split("/,\\s|\\sand\\s|[\\s\\-]/", strtolower($text));
-        $values = array_map(fn ($part) => self::$wordValuesLong[$part] ?? null, $parts);
+        $values = array_map(function ($part) {
+            return self::$wordValuesLong[$part] ?? null;
+        }, $parts);
         $segs = [0];
 
         foreach ($values as $value) {
@@ -365,7 +407,10 @@ class DateTimeUtils
         return $roman;
     }
 
-    public static function romanToDecimal(string $roman): int
+    /**
+     * @param string $roman
+     */
+    public static function romanToDecimal($roman): int
     {
         $decimal = 0;
         $max = 1;
@@ -396,14 +441,21 @@ class DateTimeUtils
         return implode('', $letters);
     }
 
-    public static function formatInteger(int|string $value, string $picture): string
+    /**
+     * @param int|string $value
+     * @param string $picture
+     */
+    public static function formatInteger($value, $picture): string
     {
         self::initialize();
         $format = self::analyseIntegerPicture($picture);
         return self::formatIntegerInternal((int) $value, $format);
     }
 
-    private static function formatIntegerInternal(int $value, object $format): string
+    /**
+     * @param object $format
+     */
+    private static function formatIntegerInternal(int $value, $format): string
     {
         $formattedInteger = "";
         $negative = $value < 0;
@@ -485,7 +537,10 @@ class DateTimeUtils
         return $formattedInteger;
     }
 
-    private static function analyseIntegerPicture(string $picture): object
+    /**
+     * @return object
+     */
+    private static function analyseIntegerPicture(string $picture)
     {
         $format = (object) [
             'type' => 'integer',
@@ -607,13 +662,17 @@ class DateTimeUtils
             }
         }
 
-        $indexes = array_map(fn ($sep) => $sep->position, $separators);
+        $indexes = array_map(function ($sep) {
+            return $sep->position;
+        }, $separators);
 
         $gcd = function ($a, $b) use (&$gcd) {
             return $b === 0 ? $a : $gcd($b, $a % $b);
         };
 
-        $factor = array_reduce($indexes, fn ($carry, $item) => $gcd($carry, $item), $indexes[0]);
+        $factor = array_reduce($indexes, function ($carry, $item) use ($gcd) {
+            return $gcd($carry, $item);
+        }, $indexes[0]);
         $counter = count($indexes);
 
         for ($i = 1; $i <= $counter; ++$i) {
@@ -625,7 +684,10 @@ class DateTimeUtils
         return $factor;
     }
 
-    private static function analyseDateTimePicture(string $picture): object
+    /**
+     * @return object
+     */
+    private static function analyseDateTimePicture(string $picture)
     {
         $format = (object) ['type' => 'datetime', 'parts' => []];
         $start = 0;
@@ -677,7 +739,7 @@ class DateTimeUtils
                     $def->presentation1 = $presMod;
                 } elseif (strlen($presMod) > 1) {
                     $lastChar = substr($presMod, -1);
-                    if (str_contains("atco", $lastChar)) {
+                    if (strpos("atco", $lastChar) !== false) {
                         $def->presentation2 = $lastChar;
                         if ($lastChar === 'o') {
                             $def->ordinal = true;
@@ -699,7 +761,7 @@ class DateTimeUtils
                     $def->names = 'lower';
                 } elseif ($def->presentation1[0] === 'N') {
                     $def->names = strlen($def->presentation1) > 1 && $def->presentation1[1] === 'n' ? 'title' : 'upper';
-                } elseif (str_contains('YMDdFWwXxHhmsf', $def->component)) {
+                } elseif (strpos('YMDdFWwXxHhmsf', $def->component) !== false) {
                     $integerPattern = $def->presentation1;
                     if (isset($def->presentation2)) {
                         $integerPattern .= ";" . $def->presentation2;
@@ -741,7 +803,10 @@ class DateTimeUtils
         return $format;
     }
 
-    private static function addLiteral(object $format, string $picture, int $start, int $end): void
+    /**
+     * @param object $format
+     */
+    private static function addLiteral($format, string $picture, int $start, int $end): void
     {
         if ($end > $start) {
             $literal = substr($picture, $start, $end - $start);
@@ -760,7 +825,12 @@ class DateTimeUtils
         return (int) $wm;
     }
 
-    public static function formatDateTime(int $millis, ?string $picture = null, ?string $timezone = null): string
+    /**
+     * @param int $millis
+     * @param string|null $picture
+     * @param string|null $timezone
+     */
+    public static function formatDateTime($millis, $picture = null, $timezone = null): string
     {
         self::initialize();
         $offsetHours = 0;
@@ -797,11 +867,14 @@ class DateTimeUtils
         return $result;
     }
 
-    private static function formatComponent(\DateTime $date, object $markerSpec, int $offsetHours, int $offsetMinutes): string
+    /**
+     * @param object $markerSpec
+     */
+    private static function formatComponent(\DateTime $date, $markerSpec, int $offsetHours, int $offsetMinutes): string
     {
         $componentValue = self::getDateTimeFragment($date, $markerSpec->component);
 
-        if (str_contains('YMDdFWwXxHhms', $markerSpec->component)) {
+        if (strpos('YMDdFWwXxHhms', $markerSpec->component) !== false) {
             if ($markerSpec->component === 'Y' && (isset($markerSpec->n) && $markerSpec->n !== -1)) {
                 $componentValue = (string) ((int) $componentValue % 10 ** $markerSpec->n);
             }
@@ -968,7 +1041,7 @@ class DateTimeUtils
                 $mpart = $matchSpec->parts[$i - 1];
                 try {
                     $components[$mpart->component] = call_user_func($mpart->parser, $matches[$i]);
-                } catch (UnsupportedOperationException) {
+                } catch (UnsupportedOperationException $exception) {
                     // do nothing
                 }
             }
@@ -1012,7 +1085,7 @@ class DateTimeUtils
             foreach (str_split($comps) as $part) {
                 if (!isset($components[$part])) {
                     if ($startSpecified) {
-                        $components[$part] = (str_contains("MDd", $part)) ? 1 : 0;
+                        $components[$part] = (strpos("MDd", $part) !== false) ? 1 : 0;
                         $endSpecified = true;
                     } else {
                         $components[$part] = (int) self::getDateTimeFragment($now, $part);
@@ -1154,7 +1227,9 @@ class DateTimeUtils
                 $res = (object) [
                     'regex' => $regex,
                     'component' => $part->component,
-                    'parser' => fn ($value) => $lookup[$value]
+                    'parser' => function ($value) use ($lookup) {
+                        return $lookup[$value];
+                    }
                 ];
             }
 
@@ -1170,18 +1245,24 @@ class DateTimeUtils
         switch ($formatSpec->primary) {
             case 'LETTERS':
                 $regex = $isUpper ? "[A-Z]+" : "[a-z]+";
-                $parser = (fn ($value) => self::lettersToDecimal($value, $isUpper ? 'A' : 'a'));
+                $parser = (function ($value) use ($isUpper) {
+                    return self::lettersToDecimal($value, $isUpper ? 'A' : 'a');
+                });
                 break;
             case 'ROMAN':
                 $regex = $isUpper ? "[MDCLXVI]+" : "[mdclxvi]+";
-                $parser = (fn ($value) => self::romanToDecimal($isUpper ? $value : strtoupper((string) $value)));
+                $parser = (function ($value) use ($isUpper) {
+                    return self::romanToDecimal($isUpper ? $value : strtoupper((string) $value));
+                });
                 break;
             case 'WORDS':
                 $words = array_keys(self::$wordValues);
                 $words[] = "and";
                 $words[] = "[\\-, ]";
                 $regex = "(?:" . implode("|", array_map('preg_quote', $words)) . ")+";
-                $parser = (fn ($value) => self::wordsToNumber(strtolower((string) $value)));
+                $parser = (function ($value) {
+                    return self::wordsToNumber(strtolower((string) $value));
+                });
                 break;
             case 'DECIMAL':
                 $regex = "[0-9]+";

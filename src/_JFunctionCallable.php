@@ -9,5 +9,10 @@ namespace Monster\JsonataPhp;
  */
 interface _JFunctionCallable
 {
-    public function call(mixed $input, array $args): mixed;
+    /**
+     * @param mixed $input
+     * @param mixed[] $args
+     * @return mixed
+     */
+    public function call($input, $args);
 }

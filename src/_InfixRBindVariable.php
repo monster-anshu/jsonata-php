@@ -12,7 +12,10 @@ class _InfixRBindVariable extends _InfixR
         $this->construct_args = func_get_args();
     }
 
-    public function led(Symbol $symbol): Symbol
+    /**
+     * @param \Monster\JsonataPhp\Symbol $symbol
+     */
+    public function led($symbol): Symbol
     {
         if ($symbol->type !== "variable") {
             return $this->outerInstance->handleError(new JException("S0212", $symbol->position, $symbol->value));

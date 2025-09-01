@@ -10,22 +10,52 @@ namespace Monster\JsonataPhp;
  */
 class _Timebox
 {
-    private readonly float $time;
+    /**
+     * @readonly
+     * @var int
+     */
+    private $timeout = 5000;
+    /**
+     * @readonly
+     * @var int
+     */
+    private $maxDepth = 100;
+    /**
+     * @readonly
+     * @var float
+     */
+    private $time;
      // start time in ms
-    private int $depth = 0;
+    /**
+     * @var int
+     */
+    private $depth = 0;
 
-    public function __construct(_Frame $frame, private readonly int $timeout = 5000, private readonly int $maxDepth = 100)
+    public function __construct(_Frame $frame, int $timeout = 5000, int $maxDepth = 100)
     {
+        $this->timeout = $timeout;
+        $this->maxDepth = $maxDepth;
         $this->time = (int) (microtime(true) * 1000);
 
         // register callbacks
         $frame->setEvaluateEntryCallback(
             new class ($this) implements _EntryCallback {
-                public function __construct(private readonly _Timebox $timebox)
+                /**
+                 * @readonly
+                 * @var \Monster\JsonataPhp\_Timebox
+                 */
+                private $timebox;
+                public function __construct(_Timebox $timebox)
                 {
+                    $this->timebox = $timebox;
                 }
 
-                public function callback(Symbol $symbol, mixed $input, _Frame $frame): void
+                /**
+                 * @param \Monster\JsonataPhp\Symbol $symbol
+                 * @param mixed $input
+                 * @param \Monster\JsonataPhp\_Frame $frame
+                 */
+                public function callback($symbol, $input, $frame): void
                 {
                     if ($frame->isParallelCall) {
                         return;
@@ -39,11 +69,23 @@ class _Timebox
 
         $expr->setEvaluateExitCallback(
             new class ($this) implements _ExitCallback {
-                public function __construct(private readonly _Timebox $timebox)
+                /**
+                 * @readonly
+                 * @var \Monster\JsonataPhp\_Timebox
+                 */
+                private $timebox;
+                public function __construct(_Timebox $timebox)
                 {
+                    $this->timebox = $timebox;
                 }
 
-                public function callback(Symbol $symbol, mixed $input, _Frame $frame, mixed $result): void
+                /**
+                 * @param \Monster\JsonataPhp\Symbol $symbol
+                 * @param mixed $input
+                 * @param \Monster\JsonataPhp\_Frame $frame
+                 * @param mixed $result
+                 */
+                public function callback($symbol, $input, $frame, $result): void
                 {
                     if ($frame->isParallelCall) {
                         return;

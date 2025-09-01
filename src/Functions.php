@@ -33,7 +33,9 @@ final class Functions
             return null;
         }
 
-        return max(array_map(fn ($n) => (float) $n, $args));
+        return max(array_map(function ($n) {
+            return (float) $n;
+        }, $args));
     }
 
     /**
@@ -47,7 +49,9 @@ final class Functions
             return null;
         }
 
-        return min(array_map(fn ($n) => (float) $n, $args));
+        return min(array_map(function ($n) {
+            return (float) $n;
+        }, $args));
     }
 
     /**
@@ -61,7 +65,9 @@ final class Functions
             return null;
         }
 
-        return array_sum(array_map(fn ($n) => (float) $n, $args)) / count($args);
+        return array_sum(array_map(function ($n) {
+            return (float) $n;
+        }, $args)) / count($args);
     }
 
     /**
@@ -74,7 +80,9 @@ final class Functions
             return null;
         }
 
-        return array_sum(array_map(fn ($n) => (float) $n, $args));
+        return array_sum(array_map(function ($n) {
+            return (float) $n;
+        }, $args));
     }
 
     /**
@@ -414,7 +422,7 @@ final class Functions
         }
 
         if (is_string($token)) {
-            return str_contains($str, $token);
+            return strpos($str, $token) !== false;
         } elseif ($token instanceof _Pattern || $token instanceof \stdClass) {
             // For PHP, we just use preg_match
             return $token->matches($str);
@@ -602,15 +610,15 @@ final class Functions
         }
 
         if (is_string($arg)) {
-            if (str_starts_with($arg, "0x")) {
+            if (strncmp($arg, "0x", strlen("0x")) === 0) {
                 return hexdec(substr($arg, 2));
             }
 
-            if (str_starts_with($arg, "0B")) {
+            if (strncmp($arg, "0B", strlen("0B")) === 0) {
                 return bindec(substr($arg, 2));
             }
 
-            if (str_starts_with($arg, "0O")) {
+            if (strncmp($arg, "0O", strlen("0O")) === 0) {
                 return octdec(substr($arg, 2));
             }
 
@@ -687,7 +695,9 @@ final class Functions
                 return self::toBoolean($arg[0]);
             }
 
-            return array_filter((array) $arg, fn ($e) => (bool) $e) !== [];
+            return array_filter((array) $arg, function ($e) {
+                return (bool) $e;
+            }) !== [];
         }
 
         if (is_string($arg)) {
@@ -755,7 +765,7 @@ final class Functions
         }
 
         foreach ($sub_pictures as $p) {
-            if (!str_contains($p, $optional_digit) && strpbrk($p, $digits_family) === false) {
+            if (strpos($p, $optional_digit) === false && strpbrk($p, $digits_family) === false) {
                 throw new JException('D3085', -1);
             }
         }
@@ -771,7 +781,7 @@ final class Functions
         foreach ($sub_pictures as $sub_picture) {
             $parts = explode($decimal_separator, $sub_picture);
             foreach ($parts as $part) {
-                if (str_ends_with($part, $grouping_separator)) {
+                if (substr_compare($part, $grouping_separator, -strlen($grouping_separator)) === 0) {
                     throw new JException('D3088', -1);
                 }
             }
@@ -809,7 +819,7 @@ final class Functions
         $len = strlen($subpic);
         for ($k = 0; $k < $len; ++$k) {
             $ch = $subpic[$k];
-            if (str_contains($active_characters, $ch)) {
+            if (strpos($active_characters, $ch) !== false) {
                 $prefix .= substr($subpic, 0, $k);
                 $subpic = substr($subpic, $k);
                 $found = true;
@@ -825,11 +835,11 @@ final class Functions
         // Determine suffix for percent/per-mille
         if ($subpic === '') {
             $suffix = '';
-        } elseif (str_ends_with($subpic, $percent_sign)) {
+        } elseif (substr_compare($subpic, $percent_sign, -strlen($percent_sign)) === 0) {
             $suffix = $percent_sign;
             $subpic = substr($subpic, 0, -strlen($percent_sign));
             $value *= 100;
-        } elseif (str_ends_with($subpic, $per_mille_sign)) {
+        } elseif (substr_compare($subpic, $per_mille_sign, -strlen($per_mille_sign)) === 0) {
             $suffix = $per_mille_sign;
             $subpic = substr($subpic, 0, -strlen($per_mille_sign));
             $value *= 1000;
@@ -839,7 +849,7 @@ final class Functions
             $len = strlen($subpic);
             for ($k = $len - 1; $k >= 0; --$k) {
                 $ch = $subpic[$k];
-                if (str_contains($active_characters, $ch)) {
+                if (strpos($active_characters, $ch) !== false) {
                     $suffix = substr($subpic, $k + 1);
                     $subpic = substr($subpic, 0, $k + 1);
                     break;
@@ -886,7 +896,7 @@ final class Functions
         $value = abs($value);
         $str = (string) $value;
 
-        if (str_contains($str, 'E') || str_contains($str, 'e')) {
+        if (strpos($str, 'E') !== false || strpos($str, 'e') !== false) {
             // Convert scientific notation to decimal string
             $parts = explode('E', strtoupper($str));
             $base = rtrim($parts[0], '.');
@@ -926,7 +936,7 @@ final class Functions
 
         $fmt_arr = str_split(strrev($fmt));
         foreach ($fmt_arr as $fmt_char) {
-            if (str_contains($digits_family, $fmt_char) || $fmt_char === $optional_digit) {
+            if (strpos($digits_family, $fmt_char) !== false || $fmt_char === $optional_digit) {
                 if ($num_digit !== null && $num_digit !== '') {
                     $result[] = $digits_family[ord($num_digit) - 48];
                     $num_digit = array_shift($digits_arr) ?? '';
@@ -960,8 +970,9 @@ final class Functions
 
     /**
      * Returns the Boolean NOT of the arg
+     * @param mixed $arg
      */
-    public static function not(mixed $arg): ?bool
+    public static function not($arg): ?bool
     {
         if ($arg === null) {
             return null;
@@ -970,7 +981,10 @@ final class Functions
         return !self::toBoolean($arg);
     }
 
-    public static function getFunctionArity(mixed $func): int
+    /**
+     * @param mixed $func
+     */
+    public static function getFunctionArity($func): int
     {
         if ($func instanceof _JFunction) {
             return $func->signature->getMinNumberOfArgs();
@@ -981,8 +995,12 @@ final class Functions
 
     /**
      * Build the arguments list for HOFs like map, filter, each
+     * @param mixed $func
+     * @param mixed $arg1
+     * @param mixed $arg2
+     * @param mixed $arg3
      */
-    public static function hofFuncArgs(mixed $func, mixed $arg1, mixed $arg2 = null, mixed $arg3 = null): array
+    public static function hofFuncArgs($func, $arg1, $arg2 = null, $arg3 = null): array
     {
         $func_args = [$arg1];
         $length = self::getFunctionArity($func);
@@ -999,8 +1017,10 @@ final class Functions
 
     /**
      * Apply a function with arguments
+     * @param mixed $func
+     * @return mixed
      */
-    public static function funcApply(mixed $func, array $funcArgs): mixed
+    public static function funcApply($func, array $funcArgs)
     {
         if (self::isLambda($func)) {
             $current = Jsonata::current();
@@ -1014,8 +1034,9 @@ final class Functions
 
     /**
      * Map an array using a function
+     * @param mixed $func
      */
-    public static function map(?array $arr, mixed $func): ?array
+    public static function map(?array $arr, $func): ?array
     {
         if ($arr === null) {
             return null;
@@ -1035,8 +1056,9 @@ final class Functions
 
     /**
      * Filter an array using a predicate function
+     * @param mixed $func
      */
-    public static function filter(?array $arr, mixed $func): ?array
+    public static function filter(?array $arr, $func): ?array
     {
         if ($arr === null) {
             return null;
@@ -1057,8 +1079,10 @@ final class Functions
     /**
      * Return the single element matching a condition
      * Throws exception if not exactly one match
+     * @param mixed $func
+     * @return mixed
      */
-    public static function single(?array $arr, mixed $func = null): mixed
+    public static function single(?array $arr, $func = null)
     {
         if ($arr === null) {
             return null;
@@ -1123,10 +1147,12 @@ final class Functions
 
     /**
      * @param array<mixed>|null $sequence
-     * @param callable|mixed $func
+     * @param mixed $func
      * @throws \Throwable
+     * @param mixed $init
+     * @return mixed
      */
-    public static function foldLeft(?array $sequence, mixed $func, mixed $init): mixed
+    public static function foldLeft(?array $sequence, $func, $init)
     {
         if ($sequence === null) {
             return null;
@@ -1166,8 +1192,9 @@ final class Functions
 
     /**
      * @return array<mixed>
+     * @param mixed $arg
      */
-    public static function keys(mixed $arg): array
+    public static function keys($arg): array
     {
         $result = Utils::createSequence();
 
@@ -1185,12 +1212,19 @@ final class Functions
         return $result;
     }
 
-    public static function exists(mixed $arg): bool
+    /**
+     * @param mixed $arg
+     */
+    public static function exists($arg): bool
     {
         return $arg !== null;
     }
 
-    public static function spread(mixed $arg): mixed
+    /**
+     * @param mixed $arg
+     * @return mixed
+     */
+    public static function spread($arg)
     {
         $result = Utils::createSequence();
 
@@ -1249,10 +1283,10 @@ final class Functions
 
     /**
      * @param array<string,mixed>|null $obj
-     * @param callable|mixed $func
+     * @param mixed $func
      * @throws \Throwable
      */
-    public static function each(?array $obj, mixed $func): ?JList
+    public static function each(?array $obj, $func): ?JList
     {
         if ($obj === null) {
             return null;
@@ -1272,8 +1306,9 @@ final class Functions
 
     /**
      * @throws \Throwable
+     * @return never
      */
-    public static function error(?string $message): never
+    public static function error(?string $message)
     {
         throw new JException("D3137", -1, $message ?? "\$error() function evaluated");
     }
@@ -1288,7 +1323,10 @@ final class Functions
         }
     }
 
-    public static function type(mixed $value): ?string
+    /**
+     * @param mixed $value
+     */
+    public static function type($value): ?string
     {
         if ($value === null) {
             return null;
@@ -1323,10 +1361,10 @@ final class Functions
 
     /**
      * @param array<mixed>|null $arr
-     * @param callable|mixed|null $comparator
+     * @param mixed $comparator
      * @return array<mixed>|null
      */
-    public static function sort(?array $arr, mixed $comparator): ?array
+    public static function sort(?array $arr, $comparator): ?array
     {
         if ($arr === null) {
             return null;
@@ -1371,10 +1409,10 @@ final class Functions
     }
 
     /**
-     * @param array<mixed>|null $arr
+     * @param mixed $arr
      * @return array<mixed>|null
      */
-    public static function distinct(mixed $arr): mixed
+    public static function distinct($arr)
     {
         if ($arr === null) {
             return null;
@@ -1392,11 +1430,11 @@ final class Functions
 
     /**
      * @param array<string,mixed>|null $arg
-     * @param callable|mixed $func
+     * @param mixed $func
      * @return array<string,mixed>|null
      * @throws \Throwable
      */
-    public static function sift(?array $arg, mixed $func): ?array
+    public static function sift(?array $arg, $func): ?array
     {
         if ($arg === null) {
             return null;
@@ -1421,10 +1459,11 @@ final class Functions
 
     /**
      * Append second argument to first
-     * @param array|object|null $arg1
-     * @param array|object|null $arg2
+     * @param mixed $arg1
+     * @param mixed $arg2
+     * @return mixed
      */
-    public static function append(mixed $arg1, mixed $arg2): mixed
+    public static function append($arg1, $arg2)
     {
         if ($arg1 === null) {
             return $arg2;
@@ -1454,15 +1493,20 @@ final class Functions
         return $arg1;
     }
 
-    public static function isLambda(mixed $result): bool
+    /**
+     * @param mixed $result
+     */
+    public static function isLambda($result): bool
     {
         return ($result instanceof Symbol && $result->_jsonata_lambda);
     }
 
     /**
      * Return value from an object for a given key
+     * @param mixed $input
+     * @return mixed
      */
-    public static function lookup(mixed $input, string $key): mixed
+    public static function lookup($input, string $key)
     {
         $result = null;
         if (Utils::isArray($input)) {
@@ -1505,12 +1549,20 @@ final class Functions
         return null;
     }
 
-    public static function call(string $class, mixed $instance, string $name, array $args): mixed
+    /**
+     * @param mixed $instance
+     * @return mixed
+     */
+    public static function call(string $class, $instance, string $name, array $args)
     {
         return self::callMethod($instance, self::getFunction($class, $name), $args);
     }
 
-    public static function callMethod(mixed $instance, ?\ReflectionMethod $reflectionMethod, array $args): mixed
+    /**
+     * @param mixed $instance
+     * @return mixed
+     */
+    public static function callMethod($instance, ?\ReflectionMethod $reflectionMethod, array $args)
     {
         if (!$reflectionMethod instanceof \ReflectionMethod) {
             throw new \Exception("Method not found");
@@ -1552,7 +1604,7 @@ final class Functions
         if ($picture === null) {
             if (self::isNumeric($timestamp)) {
                 $dt = \DateTime::createFromFormat('Y', $timestamp, new \DateTimeZone('UTC'));
-                return $dt?->getTimestamp() * 1000;
+                return (($nullsafeVariable1 = $dt) ? $nullsafeVariable1->getTimestamp() : null) * 1000;
             }
 
             try {
@@ -1562,11 +1614,11 @@ final class Functions
                 }
 
                 return (new \DateTimeImmutable($timestamp))->getTimestamp() * 1000;
-            } catch (\Throwable) {
+            } catch (\Throwable $exception) {
                 try {
                     $ldt = \DateTimeImmutable::createFromFormat('Y-m-d', $timestamp, new \DateTimeZone('UTC'));
-                    return $ldt?->setTime(0, 0)->getTimestamp() * 1000;
-                } catch (\Throwable) {
+                    return (($nullsafeVariable2 = $ldt) ? $nullsafeVariable2->setTime(0, 0)->getTimestamp() : null) * 1000;
+                } catch (\Throwable $exception2) {
                     return (new \DateTimeImmutable($timestamp, new \DateTimeZone(date_default_timezone_get())))->getTimestamp() * 1000;
                 }
             }
@@ -1584,12 +1636,18 @@ final class Functions
         return ctype_digit($cs);
     }
 
-    public static function dateTimeFromMillis(int|float $millis, ?string $picture, ?string $timezone): ?string
+    /**
+     * @param int|float $millis
+     */
+    public static function dateTimeFromMillis($millis, ?string $picture, ?string $timezone): ?string
     {
         return DateTimeUtils::formatDateTime((int) $millis, $picture, $timezone);
     }
 
-    public static function formatInteger(int|float|null $value, string $picture): ?string
+    /**
+     * @param int|float|null $value
+     */
+    public static function formatInteger($value, string $picture): ?string
     {
         if ($value === null) {
             return null;
@@ -1598,7 +1656,10 @@ final class Functions
         return DateTimeUtils::formatInteger((int) $value, $picture);
     }
 
-    public static function parseInteger(string $value, ?string $picture): int|float|null
+    /**
+     * @return float|int|null
+     */
+    public static function parseInteger(string $value, ?string $picture)
     {
         if ($value === null) {
             return null;
@@ -1609,7 +1670,7 @@ final class Functions
                 throw new \Exception("Formatting or parsing an integer with '#' not supported");
             }
 
-            if (str_ends_with($picture, ";o")) {
+            if (substr_compare($picture, ";o", -strlen(";o")) === 0) {
                 $picture = substr($picture, 0, -2);
             }
 
@@ -1637,7 +1698,7 @@ final class Functions
                 return DateTimeUtils::wordsToLong(strtolower($value));
             }
 
-            if (str_contains($picture, ":")) {
+            if (strpos($picture, ":") !== false) {
                 $value = str_replace(":", ",", $value);
                 $picture = str_replace(":", ",", $picture);
             }
@@ -1646,12 +1707,16 @@ final class Functions
         try {
             $numberFormatter = new \NumberFormatter("en_US", \NumberFormatter::DECIMAL);
             return $numberFormatter->parse($value);
-        } catch (\Throwable) {
+        } catch (\Throwable $exception) {
             return null;
         }
     }
 
-    public static function functionClone(mixed $arg): mixed
+    /**
+     * @param mixed $arg
+     * @return mixed
+     */
+    public static function functionClone($arg)
     {
         if ($arg === null) {
             return null;

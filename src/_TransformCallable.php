@@ -6,13 +6,36 @@ namespace Monster\JsonataPhp;
 
 class _TransformCallable implements _JFunctionCallable
 {
+    /**
+     * @readonly
+     * @var \Monster\JsonataPhp\Symbol
+     */
+    private $symbol;
+    /**
+     * @readonly
+     * @var \Monster\JsonataPhp\_Frame
+     */
+    private $frame;
+    /**
+     * @readonly
+     * @var \Monster\JsonataPhp\Jsonata
+     */
+    private $jsonata;
     // assuming the class containing evaluate*
 
-    public function __construct(private readonly Symbol $symbol, private readonly _Frame $frame, private readonly Jsonata $jsonata)
+    public function __construct(Symbol $symbol, _Frame $frame, Jsonata $jsonata)
     {
+        $this->symbol = $symbol;
+        $this->frame = $frame;
+        $this->jsonata = $jsonata;
     }
 
-    public function call(mixed $input, array $args): mixed
+    /**
+     * @param mixed $input
+     * @param mixed[] $args
+     * @return mixed
+     */
+    public function call($input, $args)
     {
         $obj = $args[0] ?? null;
 

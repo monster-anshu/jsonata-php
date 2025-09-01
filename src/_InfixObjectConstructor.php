@@ -17,7 +17,10 @@ class _InfixObjectConstructor extends _Infix
         return $this->outerInstance->objectParser(null);
     }
 
-    public function led(Symbol $symbol): Symbol
+    /**
+     * @param \Monster\JsonataPhp\Symbol $symbol
+     */
+    public function led($symbol): Symbol
     {
         return $this->outerInstance->objectParser($symbol);
     }

@@ -13,7 +13,10 @@ class _InfixCoalesce extends _Infix
         $this->construct_args = func_get_args();
     }
 
-    public function led(Symbol $left): Symbol
+    /**
+     * @param \Monster\JsonataPhp\Symbol $left
+     */
+    public function led($left): Symbol
     {
         $this->type = "condition";
         $cond = new Symbol($this->outerInstance);

@@ -6,5 +6,10 @@ namespace Monster\JsonataPhp;
 
 interface _JFunctionSignatureValidation
 {
-    public function validate(mixed $args, mixed $context): mixed;
+    /**
+     * @param mixed $args
+     * @param mixed $context
+     * @return mixed
+     */
+    public function validate($args, $context);
 }

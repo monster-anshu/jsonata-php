@@ -6,16 +6,29 @@ namespace Monster\JsonataPhp;
 
 class _Pattern
 {
-    public function __construct(private readonly string $regex)
+    /**
+     * @readonly
+     * @var string
+     */
+    private $regex;
+    public function __construct(string $regex)
     {
+        $this->regex = $regex;
     }
 
-    public function matches(string $subject): bool
+    /**
+     * @param string $subject
+     */
+    public function matches($subject): bool
     {
         return (bool) preg_match($this->regex, $subject);
     }
 
-    public function replace(string $subject, string $replacement): string
+    /**
+     * @param string $subject
+     * @param string $replacement
+     */
+    public function replace($subject, $replacement): string
     {
         return preg_replace($this->regex, $replacement, $subject);
     }

@@ -60,7 +60,7 @@ class Utils
      * @param mixed $arr The array to check.
      * @return bool True if the array is a list, false otherwise.
      */
-    public static function isArray(mixed $arr): bool
+    public static function isArray($arr): bool
     {
         if ($arr instanceof \ArrayObject) {
             return true;
@@ -84,7 +84,7 @@ class Utils
      * @param mixed $arr The array to check.
      * @return bool True if the array is associative, false otherwise.
      */
-    public static function isAssoc(mixed $arr): bool
+    public static function isAssoc($arr): bool
     {
         if (!is_array($arr)) {
             return false;
@@ -186,8 +186,9 @@ class Utils
      * Creates a sequence from an iterable.
      *
      * @return JList
+     * @param iterable $it
      */
-    public static function createSequenceFromIter(iterable $it)
+    public static function createSequenceFromIter($it)
     {
         $sequence = new JList($it);
         $sequence->sequence = true;
@@ -299,7 +300,11 @@ class Utils
         return self::convertValue($res);
     }
 
-    public static function RangeList(mixed $a, mixed $b): array
+    /**
+     * @param mixed $a
+     * @param mixed $b
+     */
+    public static function RangeList($a, $b): array
     {
         //TODO: check this
         // return new RangeList($a, $b);
@@ -311,17 +316,35 @@ class Utils
 // We'll define the nested classes outside of the main Utils class.
 class JList extends \ArrayObject implements \JsonSerializable
 {
-    public bool $sequence = false;
+    /**
+     * @var bool
+     */
+    public $sequence = false;
 
-    public bool $outerWrapper = false;
+    /**
+     * @var bool
+     */
+    public $outerWrapper = false;
 
-    public bool $tupleStream = false;
+    /**
+     * @var bool
+     */
+    public $tupleStream = false;
 
-    public bool $keepSingleton = false;
+    /**
+     * @var bool
+     */
+    public $keepSingleton = false;
 
-    public bool $cons = false;
+    /**
+     * @var bool
+     */
+    public $cons = false;
 
-    public function __construct(array|JList $input = [], int $flags = 0, string $iterator_class = "ArrayIterator")
+    /**
+     * @param mixed[]|\Monster\JsonataPhp\JList $input
+     */
+    public function __construct($input = [], int $flags = 0, string $iterator_class = "ArrayIterator")
     {
         parent::__construct($input, $flags, $iterator_class);
     }
@@ -344,8 +367,10 @@ class JList extends \ArrayObject implements \JsonSerializable
 
     /**
      * Get element by index
+     * @param int $index
+     * @return mixed
      */
-    public function get(int $index): mixed
+    public function get($index)
     {
         return $this->offsetExists($index) ? $this->offsetGet($index) : null;
     }
@@ -367,10 +392,14 @@ class JList extends \ArrayObject implements \JsonSerializable
 
 class RangeList extends JList
 {
+    private $a;
+    private $b;
     private $size;
 
-    public function __construct(private $a, private $b)
+    public function __construct($a, $b)
     {
+        $this->a = $a;
+        $this->b = $b;
         $this->size = $this->b - $this->a + 1;
         parent::__construct();
     }
@@ -380,7 +409,11 @@ class RangeList extends JList
         return $this->size;
     }
 
-    public function offsetGet($index): mixed
+    /**
+     * @return mixed
+     */
+    #[\ReturnTypeWillChange]
+    public function offsetGet($index)
     {
         if ($index < $this->size) {
             return Utils::convertNumber($this->a + $index);

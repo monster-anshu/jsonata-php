@@ -6,34 +6,63 @@ namespace Monster\JsonataPhp;
 
 class Signature
 {
+    /**
+     * @var string
+     */
+    public $functionName;
     public const SERIAL_VERSION_UID = -450755246855587271;
 
-    public string $signature;
+    /**
+     * @var string
+     */
+    public $signature;
 
-    public SignatureParam $param;
+    /**
+     * @var \Monster\JsonataPhp\SignatureParam
+     */
+    public $param;
 
     /** @var SignatureParam[] */
-    public array $params = [];
+    public $params = [];
 
-    public SignatureParam $prevParam;
+    /**
+     * @var \Monster\JsonataPhp\SignatureParam
+     */
+    public $prevParam;
 
-    public ?\RegexIterator $regex = null;
+    /**
+     * @var \RegexIterator|null
+     */
+    public $regex;
 
-    public string $compiledSignature = "";
+    /**
+     * @var string
+     */
+    public $compiledSignature = "";
 
-    public function __construct(string $signature, public string $functionName)
+    public function __construct(string $signature, string $functionName)
     {
+        $this->functionName = $functionName;
         $this->param = new SignatureParam();
         $this->prevParam = $this->param;
         $this->parseSignature($signature);
     }
 
-    public function setFunctionName(string $functionName): void
+    /**
+     * @param string $functionName
+     */
+    public function setFunctionName($functionName): void
     {
         $this->functionName = $functionName;
     }
 
-    public function findClosingBracket(string $string, int $start, string $open, string $close): int
+    /**
+     * @param string $string
+     * @param int $start
+     * @param string $open
+     * @param string $close
+     */
+    public function findClosingBracket($string, $start, $open, $close): int
     {
         $depth = 1;
         $position = $start;
@@ -54,7 +83,10 @@ class Signature
         return $position;
     }
 
-    public function getSymbol(mixed $value): string
+    /**
+     * @param mixed $value
+     */
+    public function getSymbol($value): string
     {
         if ($value === null) {
             return "m";
@@ -98,7 +130,10 @@ class Signature
         $this->param = new SignatureParam();
     }
 
-    public function parseSignature(string $signature): ?\RegexIterator
+    /**
+     * @param string $signature
+     */
+    public function parseSignature($signature): ?\RegexIterator
     {
         $position = 1;
         while ($position < strlen($signature)) {
@@ -148,7 +183,7 @@ class Signature
                 case '(':
                     $end = $this->findClosingBracket($signature, $position, '(', ')');
                     $choice = substr($signature, $position + 1, $end - $position - 1);
-                    if (!str_contains($choice, "<")) {
+                    if (strpos($choice, "<") === false) {
                         $this->param->regex = "[" . $choice . "m]";
                     } else {
                         throw new \RuntimeException("Choice groups with parameterized types not supported");
@@ -202,7 +237,7 @@ class Signature
     {
         $res = 0;
         foreach ($this->params as $param) {
-            if (!str_contains((string) $param->regex, "?")) {
+            if (strpos((string) $param->regex, "?") === false) {
                 ++$res;
             }
         }
@@ -217,20 +252,32 @@ class Signature
     }
 }
 
-class SignatureParam implements \Stringable
+class SignatureParam
 {
-    public ?string $type = null;
-
-    public ?string $regex = null;
-
-    public bool $context = false;
-
-    public bool $array = false;
-
-    public ?string $subtype = null;
-
-    public ?string $contextRegex = null;
-
+    /**
+     * @var string|null
+     */
+    public $type;
+    /**
+     * @var string|null
+     */
+    public $regex;
+    /**
+     * @var bool
+     */
+    public $context = false;
+    /**
+     * @var bool
+     */
+    public $array = false;
+    /**
+     * @var string|null
+     */
+    public $subtype;
+    /**
+     * @var string|null
+     */
+    public $contextRegex;
     public function __toString(): string
     {
         return "Param " . ($this->type ?? "null") . " regex=" . ($this->regex ?? "null")

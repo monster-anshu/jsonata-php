@@ -6,7 +6,10 @@ namespace Monster\JsonataPhp;
 
 class _InfixAndPrefix extends _Infix
 {
-    public _Prefix $prefix;
+    /**
+     * @var \Monster\JsonataPhp\_Prefix
+     */
+    public $prefix;
 
     public function __construct(Parser $parser, string $id, int $bp = 0)
     {

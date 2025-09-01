@@ -12,7 +12,10 @@ class _InfixRError extends _Infix
         $this->construct_args = func_get_args();
     }
 
-    public function led(Symbol $symbol): Symbol
+    /**
+     * @param \Monster\JsonataPhp\Symbol $symbol
+     */
+    public function led($symbol): Symbol
     {
         throw new \Exception("TODO");
     }

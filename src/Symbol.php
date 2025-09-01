@@ -4,54 +4,125 @@ declare(strict_types=1);
 
 namespace Monster\JsonataPhp;
 
-class Symbol implements \JsonSerializable, \Stringable
+class Symbol implements \JsonSerializable
 {
-    public ?string $type = null;
+    /**
+     * @var \Monster\JsonataPhp\Parser
+     */
+    public $outerInstance;
+    /**
+     * @var string|null
+     */
+    public $id;
+    /**
+     * @var int
+     */
+    public $bp = 0;
+    /**
+     * @var string|null
+     */
+    public $type;
 
     public $value;
 
-    public int $lbp = 0;
+    /**
+     * @var int
+     */
+    public $lbp = 0;
 
-    public int $position = 0;
+    /**
+     * @var int
+     */
+    public $position = 0;
 
-    public bool $keepArray = false;
+    /**
+     * @var bool
+     */
+    public $keepArray = false;
 
-    public bool $descending = false;
+    /**
+     * @var bool
+     */
+    public $descending = false;
 
-    public ?Symbol $expression = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $expression;
 
-    public ?array $seekingParent = null;
+    /**
+     * @var mixed[]|null
+     */
+    public $seekingParent;
        // List<Symbol>
-    public ?array $errors = null;          // List<Exception>
+    /**
+     * @var mixed[]|null
+     */
+    public $errors;          // List<Exception>
+    /**
+     * @var mixed[]|null
+     */
+    public $steps;
 
-    public ?array $steps = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $slot;
 
-    public ?Symbol $slot = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $nextFunction;
 
-    public ?Symbol $nextFunction = null;
+    /**
+     * @var bool
+     */
+    public $keepSingletonArray = false;
 
-    public bool $keepSingletonArray = false;
+    /**
+     * @var bool
+     */
+    public $consarray = false;
 
-    public bool $consarray = false;
-
-    public int $level = 0;
+    /**
+     * @var int
+     */
+    public $level = 0;
 
     public $focus;
 
     public $token;
 
-    public bool $thunk = false;
+    /**
+     * @var bool
+     */
+    public $thunk = false;
 
     // Procedure
-    public ?Symbol $procedure = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $procedure;
 
-    public ?array $arguments = null;
+    /**
+     * @var mixed[]|null
+     */
+    public $arguments;
 
-    public ?Symbol $body = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $body;
 
-    public ?array $predicate = null;
+    /**
+     * @var mixed[]|null
+     */
+    public $predicate;
 
-    public ?array $stages = null;
+    /**
+     * @var mixed[]|null
+     */
+    public $stages;
 
     public $input;
 
@@ -61,31 +132,64 @@ class Symbol implements \JsonSerializable, \Stringable
 
     public $expr;
 
-    public ?Symbol $group = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $group;
 
     public $name;
 
     // Infix attributes
-    public ?Symbol $lhs = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $lhs;
 
-    public ?Symbol $rhs = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $rhs;
 
-    public ?array $lhsObject = null;
+    /**
+     * @var mixed[]|null
+     */
+    public $lhsObject;
 
-    public ?array $rhsObject = null;
+    /**
+     * @var mixed[]|null
+     */
+    public $rhsObject;
 
-    public ?array $rhsTerms = null;
+    /**
+     * @var mixed[]|null
+     */
+    public $rhsTerms;
 
-    public ?array $terms = null;
+    /**
+     * @var mixed[]|null
+     */
+    public $terms;
 
     // Ternary operator
-    public ?Symbol $condition = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $condition;
 
-    public ?Symbol $then = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $then;
 
-    public ?Symbol $_else = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $_else;
 
-    public ?array $expressions = null;
+    /**
+     * @var mixed[]|null
+     */
+    public $expressions;
 
     // Error handling
     public $error;
@@ -93,25 +197,46 @@ class Symbol implements \JsonSerializable, \Stringable
     public $signature;
 
     // Prefix attributes
-    public ?Symbol $pattern = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $pattern;
 
-    public ?Symbol $update = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $update;
 
-    public ?Symbol $delete = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $delete;
 
     // Ancestor attributes
-    public ?string $label = null;
+    /**
+     * @var string|null
+     */
+    public $label;
 
     public $index;
 
-    public bool $_jsonata_lambda = false;
+    /**
+     * @var bool
+     */
+    public $_jsonata_lambda = false;
 
-    public ?Symbol $ancestor = null;
+    /**
+     * @var \Monster\JsonataPhp\Symbol|null
+     */
+    public $ancestor;
 
     protected $construct_args = [];
 
-    public function __construct(public Parser $outerInstance, public ?string $id = null, public int $bp = 0)
+    public function __construct(Parser $outerInstance, ?string $id = null, int $bp = 0)
     {
+        $this->outerInstance = $outerInstance;
+        $this->id = $id;
+        $this->bp = $bp;
         $this->construct_args = func_get_args();
         $this->value = $this->id;
     }
@@ -129,7 +254,10 @@ class Symbol implements \JsonSerializable, \Stringable
     }
 
     // `led` method (Left Denotation)
-    public function led(Symbol $symbol): Symbol
+    /**
+     * @param \Monster\JsonataPhp\Symbol $symbol
+     */
+    public function led($symbol): Symbol
     {
         throw new \Exception("led not implemented"); // Using a generic exception since `NotImplementedError` is Python-specific.
     }
@@ -155,7 +283,9 @@ class Symbol implements \JsonSerializable, \Stringable
                 $static->$key = $value->clone();
             } elseif (is_array($value)) {
                 // Recursively clone arrays containing Symbol objects
-                $static->$key = array_map(fn ($item) => $item instanceof Symbol ? $item->clone() : $item, $value);
+                $static->$key = array_map(function ($item) {
+                    return $item instanceof Symbol ? $item->clone() : $item;
+                }, $value);
             } else {
                 $static->$key = $value;
             }

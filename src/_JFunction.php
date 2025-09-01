@@ -6,31 +6,64 @@ namespace Monster\JsonataPhp;
 
 class _JFunction implements _JFunctionCallable, _JFunctionSignatureValidation
 {
-    public ?string $functionName = null;
+    /**
+     * @readonly
+     * @var \Monster\JsonataPhp\_JFunctionCallable|string
+     */
+    private $function;
+    /**
+     * @var string|null
+     */
+    public $functionName;
 
-    public ?Signature $signature = null;
+    /**
+     * @var \Monster\JsonataPhp\Signature|null
+     */
+    public $signature;
 
-    private ?\ReflectionMethod $reflectionMethod = null;
+    /**
+     * @var \ReflectionMethod|null
+     */
+    private $reflectionMethod;
 
-    private mixed $methodInstance = null;
+    /**
+     * @var mixed
+     */
+    private $methodInstance = null;
 
-    public function __construct(private readonly _JFunctionCallable|string $function, ?string $signature = null, ?string $className = null)
+    /**
+     * @param \Monster\JsonataPhp\_JFunctionCallable|string $function
+     */
+    public function __construct($function, ?string $signature = null, ?string $className = null)
     {
+        $this->function = $function;
         if ($signature !== null) {
             // use class name as default, gets overwritten once the function is registered
             $this->signature = new Signature($signature, $className);
         }
     }
 
+    /**
+     * @param string $functionName
+     * @param string $signature
+     * @param string $className
+     * @param mixed $instance
+     * @param string $implMethodName
+     */
     public static function fromMethod(
-        string $functionName,
-        string $signature,
-        string $className,
-        mixed $instance,
-        string $implMethodName
+        $functionName,
+        $signature,
+        $className,
+        $instance,
+        $implMethodName
     ): self {
         $obj = new self(new class () implements _JFunctionCallable {
-            public function call(mixed $input, array $args): mixed
+            /**
+             * @param mixed $input
+             * @param mixed[] $args
+             * @return mixed
+             */
+            public function call($input, $args)
             {
                 return null; // placeholder, gets replaced by reflection call
             }
@@ -42,14 +75,20 @@ class _JFunction implements _JFunctionCallable, _JFunctionSignatureValidation
 
         try {
             $obj->reflectionMethod = new \ReflectionMethod($className, $implMethodName);
-        } catch (\ReflectionException) {
+            $obj->reflectionMethod->setAccessible(true);
+        } catch (\ReflectionException $exception) {
             error_log(sprintf('Function not implemented: %s impl=%s', $functionName, $implMethodName));
         }
 
         return $obj;
     }
 
-    public function call(mixed $input, array $args): mixed
+    /**
+     * @param mixed $input
+     * @param mixed[] $args
+     * @return mixed
+     */
+    public function call($input, $args)
     {
         try {
             if ($this->function !== null) {
@@ -68,7 +107,12 @@ class _JFunction implements _JFunctionCallable, _JFunctionSignatureValidation
         return null;
     }
 
-    public function validate(mixed $args, mixed $context): mixed
+    /**
+     * @param mixed $args
+     * @param mixed $context
+     * @return mixed
+     */
+    public function validate($args, $context)
     {
         if ($this->signature instanceof \Monster\JsonataPhp\Signature) {
             return $this->signature->validate($args, $context);
